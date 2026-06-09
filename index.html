@@ -450,6 +450,18 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   </div>
 </div>
 
+<!-- CONFIRM DELETE BUDGET MODAL -->
+<div class="modal-overlay" id="confirmDeleteModal" onclick="closeConfirmDeleteModal(event)">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">🗑️ Delete Budget <button class="modal-close" onclick="document.getElementById('confirmDeleteModal').classList.remove('open')">✕</button></div>
+    <p id="confirmDeleteMsg" style="color:var(--text);font-size:14px;margin:0 0 20px 0;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('confirmDeleteModal').classList.remove('open')">Cancel</button>
+      <button class="btn-save" id="confirmDeleteOkBtn" style="background:rgba(255,77,77,0.15);color:var(--red);border:1px solid rgba(255,77,77,0.4)" onclick="confirmDeleteBudgetOk()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD BOX MODAL -->
 <div class="modal-overlay" id="addBoxModal" onclick="closeAddBoxModal(event)">
   <div class="modal" style="max-width:500px">
@@ -1916,11 +1928,21 @@ function deleteMonthBudget(){
   const month=document.getElementById('budgetMonthSel').value;
   const plans=loadBudgetPlans();
   if(!plans[month]){ showToast('⚠️ No saved budget for this month'); return; }
-  if(!confirm(`Delete budget for ${formatMonth(month)}? This will remove it from the list.`)) return;
+  document.getElementById('confirmDeleteMsg').textContent=`Are you sure you want to delete the budget for ${formatMonth(month)}? This cannot be undone.`;
+  document.getElementById('confirmDeleteModal').classList.add('open');
+}
+function closeConfirmDeleteModal(e){
+  if(e&&e.target!==document.getElementById('confirmDeleteModal'))return;
+  document.getElementById('confirmDeleteModal').classList.remove('open');
+}
+function confirmDeleteBudgetOk(){
+  document.getElementById('confirmDeleteModal').classList.remove('open');
+  const month=document.getElementById('budgetMonthSel').value;
+  const plans=loadBudgetPlans();
+  if(!plans[month]) return;
   delete plans[month];
   saveBudgetPlans(plans);
   showToast(`🗑️ ${formatMonth(month)} budget deleted`);
-  // After delete, switch to the nearest remaining month
   const remaining=getBudgetMonths();
   renderBudgetTab();
   if(remaining.length) document.getElementById('budgetMonthSel').value=remaining[0];
