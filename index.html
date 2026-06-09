@@ -1672,7 +1672,7 @@ function buildCategorySection(title, sectionId, cats, plan, subAvg, isViewer, se
     <div class="budget-section-hdr" onclick="toggleBudgetSection(this)">
       <div class="budget-section-title">${title}</div>
       <div style="display:flex;align-items:center;gap:8px">
-        <div class="budget-section-total" id="bst_${sectionId}" style="color:${color}">${fmt(sectionTotal)} SAR</div>
+        <div class="budget-section-total salary-kpi" id="bst_${sectionId}" style="color:${color}">${fmt(sectionTotal)} SAR</div>
         <span style="color:var(--muted);font-size:12px">▾</span>
       </div>
     </div>
@@ -2221,12 +2221,12 @@ function renderSavingBoxes(){
         rowPlanned+=planned; rowSpent+=spent;
         colPlanned[i]+=planned; colSpent[i]+=spent;
         const subSafe=sub.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        html+=`<td class="sb-td-plan${planned>0?' has-val':''}" onclick="editSBPlan('${subSafe}','${m}',this)">${planned>0?fmt(planned):'-'}</td>`;
-        html+=`<td class="sb-td-spent">${spent>0?`<span class="sb-neg">-${fmt(spent)}</span>`:'-'}</td>`;
+        html+=`<td class="sb-td-plan hide-number${planned>0?' has-val':''}" onclick="editSBPlan('${subSafe}','${m}',this)">${planned>0?fmt(planned):'-'}</td>`;
+        html+=`<td class="sb-td-spent hide-number">${spent>0?`<span class="sb-neg">-${fmt(spent)}</span>`:'-'}</td>`;
       });
       const rowNet=rowPlanned-rowSpent;
       grandTotal+=rowNet;
-      html+=`<td class="sb-td-total ${rowNet>0?'pos':rowNet<0?'neg':'zero'}">${rowNet>0?'+':rowNet<0?'-':''}${fmt(Math.abs(rowNet))}</td>`;
+      html+=`<td class="sb-td-total hide-number ${rowNet>0?'pos':rowNet<0?'neg':'zero'}">${rowNet>0?'+':rowNet<0?'-':''}${fmt(Math.abs(rowNet))}</td>`;
       html+=`</tr>`;
     });
   });
@@ -2237,14 +2237,15 @@ function renderSavingBoxes(){
   let footerPlanned=0,footerSpent=0;
   months.forEach((m,i)=>{
     footerPlanned+=colPlanned[i]; footerSpent+=colSpent[i];
-    html+=`<td class="sb-td-plan has-val">${colPlanned[i]>0?fmt(colPlanned[i]):'-'}</td>`;
-    html+=`<td class="sb-td-spent">${colSpent[i]>0?`<span class="sb-neg">-${fmt(colSpent[i])}</span>`:'-'}</td>`;
+    html+=`<td class="sb-td-plan hide-number has-val">${colPlanned[i]>0?fmt(colPlanned[i]):'-'}</td>`;
+    html+=`<td class="sb-td-spent hide-number">${colSpent[i]>0?`<span class="sb-neg">-${fmt(colSpent[i])}</span>`:'-'}</td>`;
   });
   const footerNet=footerPlanned-footerSpent;
-  html+=`<td class="sb-td-total ${footerNet>0?'pos':footerNet<0?'neg':'zero'}">${footerNet>0?'+':footerNet<0?'-':''}${fmt(Math.abs(footerNet))}</td>`;
+  html+=`<td class="sb-td-total hide-number ${footerNet>0?'pos':footerNet<0?'neg':'zero'}">${footerNet>0?'+':footerNet<0?'-':''}${fmt(Math.abs(footerNet))}</td>`;
   html+=`</tr></tbody></table>`;
 
   document.getElementById('sbTableWrap').innerHTML=html;
+  applyEyeState();
 }
 
 function editSBPlan(sub,month,td){
