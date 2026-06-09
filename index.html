@@ -96,6 +96,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Pl
 .log-section-icon{font-size:15px}
 .log-section-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;flex:1}
 .log-section-total{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--muted)}
+/* ARRANGE TABS */
+.arrange-btn{background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:5px}
+.arrange-btn:active{background:var(--border2)}
+.arrange-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:grab;user-select:none;transition:background 0.15s,border-color 0.15s,opacity 0.15s}
+.arrange-item.dragging{opacity:0.35}
+.arrange-item.drag-over{border-color:var(--accent);background:rgba(200,241,53,0.08)}
+.arrange-handle{font-size:18px;color:var(--muted);line-height:1;flex-shrink:0}
+.arrange-label{font-size:13px;color:var(--text);font-family:'IBM Plex Mono',monospace;flex:1}
 /* EDIT MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
@@ -345,6 +353,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       </div>
     </div>
     <div class="eye-menu-backdrop" id="eyeBackdrop" onclick="closeEyeMenu()"></div>
+    <button class="arrange-btn" onclick="openArrangeModal()" title="Arrange tabs">⠿ Arrange</button>
   </div>
 </div>
 <div class="nav">
@@ -446,6 +455,19 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div class="add-box-card" onclick="openAddBoxModal()">
       <div style="font-size:28px">📦</div>
       <div class="add-box-card-text">+ New Savings Box</div>
+    </div>
+  </div>
+</div>
+
+<!-- ARRANGE TABS MODAL -->
+<div class="modal-overlay" id="arrangeModal" onclick="closeArrangeModal(event)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">⠿ Arrange Tabs <button class="modal-close" onclick="document.getElementById('arrangeModal').classList.remove('open')">✕</button></div>
+    <p style="color:var(--muted);font-size:12px;margin:0 0 14px 0;font-family:'IBM Plex Mono',monospace">Drag to reorder your tabs</p>
+    <div id="arrangeList"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('arrangeModal').classList.remove('open')">Cancel</button>
+      <button class="btn-save" onclick="saveTabOrder()">💾 Save Order</button>
     </div>
   </div>
 </div>
@@ -963,6 +985,7 @@ function showApp(){
   }
   applyCustomCats();
   rebuildDropdowns();
+  applyTabOrder();
   renderLog();renderDash();renderExport();populateChartFilters();renderBudgetTab();
   // Pull latest data from Google Sheets
   if(isGsReady()){
@@ -1034,6 +1057,68 @@ function applyEyeState(){
     el.style.userSelect=blurAll?'none':'auto';
   });
 }
+// ── ARRANGE TABS ──────────────────────────────────────────────────
+let _arrangeDragSrc=null, _arrangeItems=[];
+function loadTabOrder(){try{const o=localStorage.getItem('tabOrder');return o?JSON.parse(o):null;}catch(e){return null;}}
+function saveTabOrderLS(o){localStorage.setItem('tabOrder',JSON.stringify(o));}
+function applyTabOrder(){
+  const order=loadTabOrder(); if(!order)return;
+  const nav=document.querySelector('.nav');
+  const adminTab=nav.querySelector('.admin-only');
+  order.forEach(id=>{const t=nav.querySelector(`[data-tab="${id}"]`);if(t&&!t.classList.contains('admin-only'))nav.appendChild(t);});
+  if(adminTab)nav.appendChild(adminTab);
+}
+function openArrangeModal(){
+  const nav=document.querySelector('.nav');
+  _arrangeItems=Array.from(nav.querySelectorAll('.nav-tab:not(.admin-only)')).map(t=>({id:t.getAttribute('data-tab'),label:t.textContent.trim()}));
+  _renderArrangeList();
+  document.getElementById('arrangeModal').classList.add('open');
+}
+function closeArrangeModal(e){
+  if(e&&e.target!==document.getElementById('arrangeModal'))return;
+  document.getElementById('arrangeModal').classList.remove('open');
+}
+function _renderArrangeList(){
+  document.getElementById('arrangeList').innerHTML=_arrangeItems.map((item,i)=>
+    `<div class="arrange-item" draggable="true" data-idx="${i}"
+       ondragstart="_aDragStart(event,${i})" ondragover="_aDragOver(event,${i})"
+       ondrop="_aDrop(event,${i})" ondragend="_aDragEnd()"
+       ontouchstart="_aTouchStart(event,${i})" ontouchmove="_aTouchMove(event)" ontouchend="_aTouchEnd(event)">
+      <span class="arrange-handle">⠿</span>
+      <span class="arrange-label">${item.label}</span>
+    </div>`).join('');
+}
+function _aDragStart(e,i){_arrangeDragSrc=i;e.dataTransfer.effectAllowed='move';setTimeout(()=>{const el=document.querySelectorAll('.arrange-item')[i];if(el)el.classList.add('dragging');},0);}
+function _aDragOver(e,i){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.arrange-item').forEach((el,j)=>el.classList.toggle('drag-over',j===i&&i!==_arrangeDragSrc));}
+function _aDrop(e,i){e.preventDefault();if(_arrangeDragSrc===null||_arrangeDragSrc===i)return;const moved=_arrangeItems.splice(_arrangeDragSrc,1)[0];_arrangeItems.splice(i,0,moved);_arrangeDragSrc=null;_renderArrangeList();}
+function _aDragEnd(){_arrangeDragSrc=null;document.querySelectorAll('.arrange-item').forEach(el=>el.classList.remove('dragging','drag-over'));}
+// Touch support
+let _touchSrcIdx=null,_touchClone=null;
+function _aTouchStart(e,i){_touchSrcIdx=i;}
+function _aTouchMove(e){
+  e.preventDefault();
+  const touch=e.touches[0];
+  const el=document.elementFromPoint(touch.clientX,touch.clientY);
+  if(!el)return;
+  const item=el.closest('.arrange-item');
+  if(item){const j=parseInt(item.getAttribute('data-idx'));document.querySelectorAll('.arrange-item').forEach((x,k)=>x.classList.toggle('drag-over',k===j&&j!==_touchSrcIdx));}
+}
+function _aTouchEnd(e){
+  const touch=e.changedTouches[0];
+  const el=document.elementFromPoint(touch.clientX,touch.clientY);
+  document.querySelectorAll('.arrange-item').forEach(x=>x.classList.remove('drag-over'));
+  if(el){const item=el.closest('.arrange-item');if(item){const j=parseInt(item.getAttribute('data-idx'));if(_touchSrcIdx!==null&&_touchSrcIdx!==j){const moved=_arrangeItems.splice(_touchSrcIdx,1)[0];_arrangeItems.splice(j,0,moved);_renderArrangeList();}}}
+  _touchSrcIdx=null;
+}
+function saveTabOrder(){
+  const order=_arrangeItems.map(i=>i.id);
+  saveTabOrderLS(order);
+  applyTabOrder();
+  document.getElementById('arrangeModal').classList.remove('open');
+  showToast('✅ Tab order saved');
+}
+// ──────────────────────────────────────────────────────────────────
+
 function openEyeMenu(e){
   e.stopPropagation();
   const menu=document.getElementById('eyeMenu');
