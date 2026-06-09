@@ -383,7 +383,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 
 <!-- LOG -->
 <div class="page" id="page-log">
-  <div class="log-header"><span class="log-title">Expenses</span><div style="display:flex;align-items:center;gap:8px"><button id="saveBtn" onclick="saveAndSync()" style="font-size:12px;padding:5px 14px;border-radius:20px;border:none;background:var(--accent);color:#0D0D0F;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all 0.2s">💾 Save</button><div style="text-align:right"><span class="log-total" id="logTotal">0 SAR</span><div id="logTotalBreakdown" style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px"></div></div></div></div>
+  <div class="log-header"><span class="log-title">Expenses</span><div style="display:flex;align-items:center;gap:8px"><button id="saveBtn" onclick="saveAndSync()" style="font-size:12px;padding:5px 14px;border-radius:20px;border:none;background:var(--accent);color:#0D0D0F;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all 0.2s">💾 Save</button><div style="text-align:right"><span class="log-total salary-kpi" id="logTotal">0 SAR</span><div class="salary-kpi" id="logTotalBreakdown" style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px"></div></div></div></div>
   <div class="month-tabs-wrap" id="monthTabs"></div>
   <div id="sortFilterBar" style="padding:0 16px 10px">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
@@ -422,8 +422,8 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 <div class="page" id="page-boxes">
   <div class="boxes-wrap">
     <div class="boxes-summary">
-      <div><div class="boxes-sum-label">Total Saved</div><div class="boxes-sum-val" id="boxesTotalSaved">0 SAR</div></div>
-      <div style="text-align:right"><div class="boxes-sum-label">Total Target</div><div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--muted)" id="boxesTotalTarget">0 SAR</div></div>
+      <div><div class="boxes-sum-label">Total Saved</div><div class="boxes-sum-val salary-kpi" id="boxesTotalSaved">0 SAR</div></div>
+      <div style="text-align:right"><div class="boxes-sum-label">Total Target</div><div class="salary-kpi" style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--muted)" id="boxesTotalTarget">0 SAR</div></div>
     </div>
     <div id="boxesList"></div>
     <div class="add-box-card" onclick="openAddBoxModal()">
@@ -495,7 +495,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div class="modal-title" id="boxTxTitle">Deposit <button class="modal-close" onclick="document.getElementById('boxTxModal').classList.remove('open')">✕</button></div>
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:13px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:4px">Current Balance</div>
-      <div style="font-size:28px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--accent)" id="boxTxCurrentBal">0 SAR</div>
+      <div class="salary-kpi" style="font-size:28px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--accent)" id="boxTxCurrentBal">0 SAR</div>
     </div>
     <div class="form-row">
       <label class="form-label">Amount (SAR)</label>
@@ -535,9 +535,9 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
         <div class="kpi-value salary-kpi" id="dInvest" style="color:var(--blue)"></div>
       </div>
       <div class="kpi-card full"><div class="kpi-label">Spendable Budget</div><div class="kpi-value salary-kpi" id="dSpendable" style="color:var(--green)"></div></div>
-      <div class="kpi-card full"><div class="kpi-label">Actual Spent (Spendable)</div><div class="kpi-value" style="color:var(--red)" id="dSpent"></div></div>
-      <div class="kpi-card full"><div class="kpi-label">Remaining Spendable</div><div class="kpi-value" id="dRemaining"></div></div>
-      <div class="kpi-card full"><div class="kpi-label">Projected Month Savings</div><div class="kpi-value" id="dSavings"></div></div>
+      <div class="kpi-card full"><div class="kpi-label">Actual Spent (Spendable)</div><div class="kpi-value salary-kpi" style="color:var(--red)" id="dSpent"></div></div>
+      <div class="kpi-card full"><div class="kpi-label">Remaining Spendable</div><div class="kpi-value salary-kpi" id="dRemaining"></div></div>
+      <div class="kpi-card full"><div class="kpi-label">Projected Month Savings</div><div class="kpi-value salary-kpi" id="dSavings"></div></div>
     </div>
     <div class="section-title">Spendable Categories Only</div>
     <div id="categoryBars"></div>
@@ -1153,14 +1153,15 @@ function renderLog(){
   const savingBoxes=expenses.filter(e=>e.type==='Saving Box');
   let html='';
   if(spendables.length){
-    html+=`<div class="log-section-header spend"><span class="log-section-icon">💸</span><span class="log-section-title">Spendable</span><span class="log-section-total">${fmt(spendables.reduce((s,e)=>s+e.amount,0))} SAR</span></div>`;
+    html+=`<div class="log-section-header spend"><span class="log-section-icon">💸</span><span class="log-section-title">Spendable</span><span class="log-section-total salary-kpi">${fmt(spendables.reduce((s,e)=>s+e.amount,0))} SAR</span></div>`;
     html+=buildItems(spendables);
   }
   if(savingBoxes.length){
-    html+=`<div class="log-section-header save"><span class="log-section-icon">📦</span><span class="log-section-title">Saving Boxes</span><span class="log-section-total">${fmt(savingBoxes.reduce((s,e)=>s+e.amount,0))} SAR</span></div>`;
+    html+=`<div class="log-section-header save"><span class="log-section-icon">📦</span><span class="log-section-title">Saving Boxes</span><span class="log-section-total salary-kpi">${fmt(savingBoxes.reduce((s,e)=>s+e.amount,0))} SAR</span></div>`;
     html+=buildItems(savingBoxes);
   }
   list.innerHTML=html;
+  applyEyeState();
 }
 function selectLogMonth(m){selectedLogMonth=m;renderLog();}
 function deleteExpense(id){const ex=loadExpenses().find(e=>e.id===id);if(!confirm('Are you sure you want to delete "'+(ex?ex.sub:'this expense')+'"?'))return;saveExpenses(loadExpenses().filter(e=>e.id!==id));if(ex)gsPush('deleteExpense',ex);renderLog();renderDash();showToast('🗑️ Removed');}
@@ -1259,7 +1260,7 @@ function renderMonthlyDash(){
     const budget=MAIN_BUDGETS[cat]||0;
     const pct=budget>0?Math.min((total/budget)*100,100):0;
     const over=budget>0&&total>budget;
-    return`<div class="progress-wrap"><div class="progress-label"><span class="progress-name">${CAT_ICONS[cat]||'💸'} ${cat}</span><span class="progress-nums">${fmt(total)} SAR${budget?' / '+fmt(budget):''}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${over?'var(--red)':'var(--accent)'}"></div></div></div>`;
+    return`<div class="progress-wrap"><div class="progress-label"><span class="progress-name">${CAT_ICONS[cat]||'💸'} ${cat}</span><span class="progress-nums salary-kpi">${fmt(total)} SAR${budget?' / '+fmt(budget):''}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${over?'var(--red)':'var(--accent)'}"></div></div></div>`;
   }).join('');
   applyEyeState();
 }
