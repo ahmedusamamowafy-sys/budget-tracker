@@ -26,6 +26,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Pl
 .topbar-right{display:flex;align-items:center;gap:10px}
 .topbar-month{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
 .eye-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 4px;line-height:1;transition:color 0.2s}
+.eye-menu-wrap{position:relative}
+.eye-menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--card);border:1px solid var(--border2);border-radius:12px;z-index:300;min-width:158px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.5);display:none}
+.eye-menu.open{display:block}
+.eye-menu-item{padding:12px 16px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;font-family:'IBM Plex Mono',monospace;color:var(--muted);transition:background 0.15s}
+.eye-menu-item:last-child{border-bottom:none}
+.eye-menu-item:active{background:var(--border2)}
+.eye-menu-item.active{color:var(--accent);background:rgba(200,241,53,0.06)}
+.eye-menu-backdrop{display:none;position:fixed;inset:0;z-index:299}
+.eye-menu-backdrop.open{display:block}
 /* NAV */
 .nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:57px;z-index:99;overflow-x:auto;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
@@ -327,7 +336,15 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <span id="topbarUser" style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
     <button onclick="logout()" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace" title="Switch User">🔄 Switch User</button>
     <div class="topbar-month" id="topbarMonth"></div>
-    <button class="eye-btn" id="eyeBtn" onclick="toggleSalary()" title="Hide/show salary">👁️</button>
+    <div class="eye-menu-wrap">
+      <button class="eye-btn" id="eyeBtn" onclick="openEyeMenu(event)" title="Visibility options">👁️</button>
+      <div class="eye-menu" id="eyeMenu">
+        <div class="eye-menu-item active" id="eyeOpt-none" onclick="setEyeMode('none')"><span>👁️</span> View All</div>
+        <div class="eye-menu-item" id="eyeOpt-totals" onclick="setEyeMode('totals')"><span>🙈</span> Hide Totals</div>
+        <div class="eye-menu-item" id="eyeOpt-all" onclick="setEyeMode('all')"><span>🔒</span> Hide All</div>
+      </div>
+    </div>
+    <div class="eye-menu-backdrop" id="eyeBackdrop" onclick="closeEyeMenu()"></div>
   </div>
 </div>
 <div class="nav">
@@ -833,7 +850,7 @@ const MAIN_BUDGETS={'Housing':150,'Monthly Needs':1150,'Transportation':720,'Per
 const SUB_BUDGETS={'Internet':0,'Home Maintenance':50,'Cleaning Supplies':50,'Protein food':635,'Food Required Items':100,'Groceries':150,'Laundry':0,'Household Items':85,'Internet Bills':0,'Mobile Bills':180,'Car Petrol':300,'Parking Fees':20,'Car Wash':50,'Haircut / Salon':30,'Skincare':50,'Shopping':500,'Restaurants':150,'Coffee Shops':150,'Entertainment':150,'Weekend Trips':150};
 const SUB_TO_MAIN={'Internet':'Housing','Home Maintenance':'Housing','Cleaning Supplies':'Housing','Protein food':'Monthly Needs','Food Required Items':'Monthly Needs','Groceries':'Monthly Needs','Laundry':'Monthly Needs','Household Items':'Monthly Needs','Internet Bills':'Monthly Needs','Mobile Bills':'Monthly Needs','Car Petrol':'Transportation','Parking Fees':'Transportation','Car Wash':'Transportation','Haircut / Salon':'Personal Care','Skincare':'Personal Care','Shopping':'Welfare','Restaurants':'Welfare','Coffee Shops':'Welfare','Entertainment':'Welfare','Weekend Trips':'Welfare'};
 
-let salaryHidden=false, selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null}, logCollapsed={spend:false,save:false};
+let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null}, logCollapsed={spend:false,save:false};
 
 function loadSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function saveSettings(s){
@@ -992,16 +1009,39 @@ function switchTab(tab,el){
   if(tab==='savingboxes')renderSavingBoxes();
 }
 
-// EYE - only salary KPI fields
+// EYE - 3-mode visibility
 function applyEyeState(){
+  const blurKpi=eyeMode==='totals'||eyeMode==='all';
+  const blurAll=eyeMode==='all';
   document.querySelectorAll('.salary-kpi').forEach(el=>{
-    el.style.filter=salaryHidden?'blur(7px)':'none';
-    el.style.userSelect=salaryHidden?'none':'auto';
+    el.style.filter=blurKpi?'blur(7px)':'none';
+    el.style.userSelect=blurKpi?'none':'auto';
+  });
+  document.querySelectorAll('.hide-number').forEach(el=>{
+    el.style.filter=blurAll?'blur(7px)':'none';
+    el.style.userSelect=blurAll?'none':'auto';
   });
 }
-function toggleSalary(){
-  salaryHidden=!salaryHidden;
-  document.getElementById('eyeBtn').textContent=salaryHidden?'🙈':'👁️';
+function openEyeMenu(e){
+  e.stopPropagation();
+  const menu=document.getElementById('eyeMenu');
+  const backdrop=document.getElementById('eyeBackdrop');
+  const isOpen=menu.classList.contains('open');
+  if(isOpen){closeEyeMenu();}else{menu.classList.add('open');backdrop.classList.add('open');}
+}
+function closeEyeMenu(){
+  document.getElementById('eyeMenu').classList.remove('open');
+  document.getElementById('eyeBackdrop').classList.remove('open');
+}
+function setEyeMode(mode){
+  eyeMode=mode;
+  closeEyeMenu();
+  const icons={none:'👁️',totals:'🙈',all:'🔒'};
+  document.getElementById('eyeBtn').textContent=icons[mode];
+  ['none','totals','all'].forEach(m=>{
+    const el=document.getElementById('eyeOpt-'+m);
+    if(el) el.classList.toggle('active',m===mode);
+  });
   applyEyeState();
 }
 
@@ -1146,7 +1186,7 @@ function renderLog(){
       const iconBg=e.type==='Saving Box'?'rgba(167,139,250,0.15)':'rgba(74,222,128,0.12)';
       const canEditLog=canEdit('log');
       const userBadge=e.addedBy?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:${e.addedBy==='Ahmed'?'rgba(200,241,53,0.15)':'rgba(96,165,250,0.12)'};color:${e.addedBy==='Ahmed'?'var(--accent)':'var(--blue)'};border:1px solid ${e.addedBy==='Ahmed'?'rgba(200,241,53,0.3)':'rgba(96,165,250,0.3)'};font-family:'IBM Plex Mono',monospace;margin-left:4px">${e.addedBy}</span>`:'';
-      return`<div class="expense-item" id="exp-${e.id}"><div class="expense-icon" style="background:${iconBg}">${icon}</div><div class="expense-info"><div class="expense-sub">${e.sub}${userBadge}</div><div class="expense-meta">${e.date}${e.desc?' · '+e.desc:''}</div></div><div class="expense-right"><div class="expense-amount">${fmt(e.amount)}</div><div class="expense-pay">${e.pay}</div></div>${canEditLog?'<div class="item-actions"><button class="edit-btn" onclick="openEditModal('+e.id+')">✏️</button><button class="delete-btn" onclick="deleteExpense('+e.id+')">✕</button></div>':''}</div>`;
+      return`<div class="expense-item" id="exp-${e.id}"><div class="expense-icon" style="background:${iconBg}">${icon}</div><div class="expense-info"><div class="expense-sub">${e.sub}${userBadge}</div><div class="expense-meta">${e.date}${e.desc?' · '+e.desc:''}</div></div><div class="expense-right"><div class="expense-amount hide-number">${fmt(e.amount)}</div><div class="expense-pay">${e.pay}</div></div>${canEditLog?'<div class="item-actions"><button class="edit-btn" onclick="openEditModal('+e.id+')">✏️</button><button class="delete-btn" onclick="deleteExpense('+e.id+')">✕</button></div>':''}</div>`;
     }).join('');
   }
   const spendables=expenses.filter(e=>e.type==='Spendable');
