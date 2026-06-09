@@ -627,7 +627,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
   </div>
   <div class="chart-canvas-wrap">
-    <canvas id="barChart" height="220"></canvas>
+    <canvas id="barChart" class="hide-number" height="220"></canvas>
     <div class="chart-legend">
       <div class="legend-item"><div class="legend-dot" style="background:rgba(200,241,53,0.5);border:1px solid var(--accent)"></div>Budget</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Spent</div>
@@ -1400,8 +1400,9 @@ function renderCharts(){
     const pct=budgets[i]>0?Math.round(spent[i]/budgets[i]*100):null;
     const over=budgets[i]>0&&spent[i]>budgets[i];
     const left=budgets[i]>0?budgets[i]-spent[i]:null;
-    return`<tr><td>${lbl}</td><td class="r">${budgets[i]?fmt(budgets[i]):'-'}</td><td class="r ${spent[i]>0?(over?'over':'ok'):''}">${fmt(spent[i])}</td><td class="r ${pct!==null?(pct>100?'over':'ok'):''}">${pct!==null?pct+'%':'-'}</td><td class="r ${left!==null?(left<0?'over':'ok'):''}">${left!==null?fmt(left):'-'}</td></tr>`;
+    return`<tr><td>${lbl}</td><td class="r hide-number">${budgets[i]?fmt(budgets[i]):'-'}</td><td class="r hide-number ${spent[i]>0?(over?'over':'ok'):''}">${fmt(spent[i])}</td><td class="r hide-number ${pct!==null?(pct>100?'over':'ok'):''}">${pct!==null?pct+'%':'-'}</td><td class="r hide-number ${left!==null?(left<0?'over':'ok'):''}">${left!==null?fmt(left):'-'}</td></tr>`;
   }).join('');
+  applyEyeState();
 }
 function drawChart(labels,spent,budgets){
   const canvas=document.getElementById('barChart');
@@ -1692,9 +1693,9 @@ function buildCategorySection(title, sectionId, cats, plan, subAvg, isViewer, se
             <span>${c.sub}</span>
             ${!isViewer?`<button onclick="renameCat('${escapedSub}')" title="Rename" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:1px 3px;opacity:0.5;line-height:1;border-radius:4px;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✏️</button>`:''}
           </div>
-          <div class="budget-row-hint" style="color:${hintColor}">💡 ${hint}</div>
+          <div class="budget-row-hint hide-number" style="color:${hintColor}">💡 ${hint}</div>
         </div>
-        <input class="budget-amount-input" type="number" inputmode="decimal" min="0"
+        <input class="budget-amount-input hide-number" type="number" inputmode="decimal" min="0"
           data-sub="${c.sub}" data-section="${sectionId}" data-main="${main}"
           value="${val}" ${readonly}
           oninput="onBudgetInput(this,'${sectionId}')">
