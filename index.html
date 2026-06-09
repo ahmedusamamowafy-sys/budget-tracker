@@ -1588,9 +1588,6 @@ function getBudgetMonths(){
   const existing=Object.keys(plans).sort().reverse();
   const cur=getCurrentMonth();
   if(!existing.includes(cur)) existing.unshift(cur);
-  // Add next 2 months for planning ahead
-  const addMonth=(ym,n)=>{let[y,m]=ym.split('-').map(Number);m+=n;while(m>12){m-=12;y++;}return`${y}-${String(m).padStart(2,'0')}`;};
-  [1,2].forEach(n=>{const nx=addMonth(cur,n);if(!existing.includes(nx))existing.unshift(nx);});
   return [...new Set(existing)].sort().reverse();
 }
 
@@ -1926,8 +1923,8 @@ function saveNewCat(){
 }
 function deleteMonthBudget(){
   const month=document.getElementById('budgetMonthSel').value;
-  const plans=loadBudgetPlans();
-  if(!plans[month]){ showToast('⚠️ No saved budget for this month'); return; }
+  const cur=getCurrentMonth();
+  if(month===cur){ showToast('⚠️ Cannot delete the current month'); return; }
   document.getElementById('confirmDeleteMsg').textContent=`Are you sure you want to delete the budget for ${formatMonth(month)}? This cannot be undone.`;
   document.getElementById('confirmDeleteModal').classList.add('open');
 }
