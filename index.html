@@ -371,6 +371,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div class="nav-tab" data-tab="charts" onclick="switchTab('charts',this)">📈 Charts</div>
   <div class="nav-tab" data-tab="budget" onclick="switchTab('budget',this)">💼 Budget</div>
   <div class="nav-tab" data-tab="savingboxes" onclick="switchTab('savingboxes',this)">💰 Saving Boxes</div>
+  <div class="nav-tab" data-tab="spendable" onclick="switchTab('spendable',this)">💸 Spendable</div>
   <div class="nav-tab" data-tab="export" onclick="switchTab('export',this)">⬇️ Export</div>
   <div class="nav-tab" data-tab="import" onclick="switchTab('import',this)">⬆️ Import</div>
   <div class="nav-tab admin-only" data-tab="adminpref" onclick="switchTab('adminpref',this)" style="display:none">⚙️ Admin</div>
@@ -449,6 +450,28 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
     <div class="sb-hint">📋 Click any Planned cell to edit • Spent = from LOG (Saving Box type)</div>
     <div class="sb-scroll"><div id="sbTableWrap"></div></div>
+  </div>
+</div>
+
+<!-- SPENDABLE -->
+<div class="page" id="page-spendable">
+  <div class="sb-wrap">
+    <div class="sb-summary">
+      <div class="sb-sum-card">
+        <div class="sb-sum-label">📋 Planned</div>
+        <div class="sb-sum-val salary-kpi" id="spTotalPlanned" style="color:var(--green)">0 SAR</div>
+      </div>
+      <div class="sb-sum-card">
+        <div class="sb-sum-label">💸 Spent</div>
+        <div class="sb-sum-val salary-kpi" id="spTotalSpent" style="color:var(--red)">0 SAR</div>
+      </div>
+      <div class="sb-sum-card">
+        <div class="sb-sum-label">💰 Balance</div>
+        <div class="sb-sum-val salary-kpi" id="spNetBalance">0 SAR</div>
+      </div>
+    </div>
+    <div class="sb-hint">📋 Click any Planned cell to edit • Spent = from LOG (Spendable type)</div>
+    <div class="sb-scroll"><div id="spTableWrap"></div></div>
   </div>
 </div>
 
@@ -1006,6 +1029,7 @@ function showApp(){
       if(res.perms)     { localStorage.setItem(PERMS_KEY,JSON.stringify(res.perms)); }
       if(res.savings_boxes){ localStorage.setItem(BOXES_KEY,JSON.stringify(res.savings_boxes)); }
       if(res.saving_box_plans){ localStorage.setItem(SB_PLANS_KEY,JSON.stringify(res.saving_box_plans)); }
+      if(res.spendable_plans){ localStorage.setItem(SP_PLANS_KEY,JSON.stringify(res.spendable_plans)); }
       if(res.custom_cats && Array.isArray(res.custom_cats) && res.custom_cats.length>0){
         localStorage.setItem(CUSTOM_CATS_KEY,JSON.stringify(res.custom_cats));
         ALL_CATEGORIES.length=0; res.custom_cats.forEach(c=>ALL_CATEGORIES.push(c));
@@ -1050,6 +1074,7 @@ function switchTab(tab,el){
   if(tab==='adminpref')renderAdminPrefs();
   if(tab==='boxes')renderBoxes();
   if(tab==='savingboxes')renderSavingBoxes();
+  if(tab==='spendable')renderSpendable();
 }
 
 // EYE - 3-mode visibility
@@ -1205,6 +1230,7 @@ async function saveAndSync(){
       if(res.perms) localStorage.setItem('ksa_budget_perms',JSON.stringify(res.perms));
       if(res.savings_boxes) localStorage.setItem(BOXES_KEY,JSON.stringify(res.savings_boxes));
       if(res.saving_box_plans) localStorage.setItem(SB_PLANS_KEY,JSON.stringify(res.saving_box_plans));
+      if(res.spendable_plans) localStorage.setItem(SP_PLANS_KEY,JSON.stringify(res.spendable_plans));
       if(res.custom_cats && Array.isArray(res.custom_cats) && res.custom_cats.length>0){
         localStorage.setItem(CUSTOM_CATS_KEY,JSON.stringify(res.custom_cats));
         ALL_CATEGORIES.length=0; res.custom_cats.forEach(c=>ALL_CATEGORIES.push(c));
@@ -1985,6 +2011,7 @@ function renameCat(oldSub){
   renderBudgetTab();
   renderLog();
   renderSavingBoxes();
+  renderSpendable();
   showToast(`✅ Renamed to "${nn}"`);
 }
 function openAddCatModal(type){
@@ -2011,6 +2038,7 @@ function saveNewCat(){
   rebuildDropdowns();
   renderBudgetTab();
   renderSavingBoxes();
+  renderSpendable();
   document.getElementById('addCatModal').classList.remove('open');
   showToast(`✅ "${name}" added`);
 }
@@ -2257,6 +2285,20 @@ function getSBMonths(){
   return months;
 }
 
+const SP_PLANS_KEY='ksa_sp_plans';
+function loadSPPlans(){try{return JSON.parse(localStorage.getItem(SP_PLANS_KEY)||'{}');}catch(e){return{};}}
+function saveSPPlans(p){
+  localStorage.setItem(SP_PLANS_KEY,JSON.stringify(p));
+  gsPush('saveKV',{key:'spendable_plans',value:p});
+}
+function getSPMonths(){
+  // All months that have Spendable expenses + current month
+  const months=[...new Set(loadExpenses().filter(e=>e.type==='Spendable').map(e=>e.month))].sort();
+  const cur=getCurrentMonth();
+  if(!months.length||!months.includes(cur)) months.push(cur);
+  return months;
+}
+
 function renderSavingBoxes(){
   const allSBCats=ALL_CATEGORIES.filter(c=>c.type==='Saving Box');
   // Group by main category
@@ -2379,6 +2421,131 @@ function editSBPlan(sub,month,td){
   inp.addEventListener('keydown',e=>{
     if(e.key==='Enter'){inp.removeEventListener('blur',save);save();}
     if(e.key==='Escape') renderSavingBoxes();
+  });
+}
+
+// ── SPENDABLE TABLE ──────────────────────────────────────────
+function renderSpendable(){
+  const allSPCats=ALL_CATEGORIES.filter(c=>c.type==='Spendable');
+  // Group by main category
+  const groups={};
+  allSPCats.forEach(c=>{
+    if(!groups[c.main]) groups[c.main]=[];
+    groups[c.main].push(c.sub);
+  });
+  // Also add any from LOG not in ALL_CATEGORIES
+  const fromLog=[...new Set(loadExpenses().filter(e=>e.type==='Spendable').map(e=>e.sub))];
+  fromLog.forEach(sub=>{
+    if(!allSPCats.find(c=>c.sub===sub)){
+      if(!groups['Other']) groups['Other']=[];
+      if(!groups['Other'].includes(sub)) groups['Other'].push(sub);
+    }
+  });
+
+  const months=getSPMonths();
+  const plans=loadSPPlans();
+  const spExp=loadExpenses().filter(e=>e.type==='Spendable');
+
+  // Summary totals (all months, all subs)
+  let grandPlannedAll=0, grandSpentAll=0;
+  allSPCats.forEach(c=>{
+    months.forEach(m=>{
+      grandPlannedAll+=(plans[c.sub]?.[m]!=null?plans[c.sub][m]:DEFAULT_BUDGETS[c.sub]||0);
+      grandSpentAll+=spExp.filter(e=>e.sub===c.sub&&e.month===m).reduce((s,e)=>s+e.amount,0);
+    });
+  });
+  const netAll=grandPlannedAll-grandSpentAll;
+  document.getElementById('spTotalPlanned').textContent=fmt(grandPlannedAll)+' SAR';
+  document.getElementById('spTotalSpent').textContent=fmt(grandSpentAll)+' SAR';
+  document.getElementById('spNetBalance').textContent=fmt(netAll)+' SAR';
+  document.getElementById('spNetBalance').style.color=netAll>=0?'var(--accent)':'var(--red)';
+
+  // Build table
+  let html=`<table class="sb-table">`;
+
+  // Header row 1
+  html+=`<thead><tr>`;
+  html+=`<th class="sb-th-name" rowspan="2">Category</th>`;
+  months.forEach(m=>{
+    html+=`<th class="sb-th-month" colspan="2">${formatMonth(m)}</th>`;
+  });
+  html+=`<th class="sb-th-total" rowspan="2">Total Balance</th></tr>`;
+
+  // Header row 2
+  html+=`<tr>`;
+  months.forEach(()=>{
+    html+=`<th class="sb-th-plan">Plan</th><th class="sb-th-spent">Spent</th>`;
+  });
+  html+=`</tr></thead><tbody>`;
+
+  // Footer accumulators
+  const colPlanned=months.map(()=>0);
+  const colSpent=months.map(()=>0);
+  let grandTotal=0;
+
+  Object.entries(groups).forEach(([mainCat,subs])=>{
+    // Group header row
+    html+=`<tr class="sb-group-row"><td class="sb-td-name">${CAT_ICONS[mainCat]||'💸'} ${mainCat}</td>`;
+    for(let i=0;i<months.length*2+1;i++) html+=`<td></td>`;
+    html+=`</tr>`;
+
+    subs.forEach(sub=>{
+      html+=`<tr>`;
+      html+=`<td class="sb-td-name">${sub}<div class="sb-td-name-main">${mainCat}</div></td>`;
+      let rowPlanned=0,rowSpent=0;
+      months.forEach((m,i)=>{
+        const defaultVal=DEFAULT_BUDGETS[sub]||0;
+        const planned=plans[sub]?.[m]!=null?plans[sub][m]:defaultVal;
+        const spent=spExp.filter(e=>e.sub===sub&&e.month===m).reduce((s,e)=>s+e.amount,0);
+        rowPlanned+=planned; rowSpent+=spent;
+        colPlanned[i]+=planned; colSpent[i]+=spent;
+        const subSafe=sub.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        html+=`<td class="sb-td-plan hide-number${planned>0?' has-val':''}" onclick="editSPPlan('${subSafe}','${m}',this)">${planned>0?fmt(planned):'-'}</td>`;
+        html+=`<td class="sb-td-spent hide-number">${spent>0?`<span class="sb-neg">-${fmt(spent)}</span>`:'-'}</td>`;
+      });
+      const rowNet=rowPlanned-rowSpent;
+      grandTotal+=rowNet;
+      html+=`<td class="sb-td-total hide-number ${rowNet>0?'pos':rowNet<0?'neg':'zero'}">${rowNet>0?'+':rowNet<0?'-':''}${fmt(Math.abs(rowNet))}</td>`;
+      html+=`</tr>`;
+    });
+  });
+
+  // Footer row
+  html+=`<tr class="sb-tr-footer">`;
+  html+=`<td class="sb-td-name">Grand Total</td>`;
+  let footerPlanned=0,footerSpent=0;
+  months.forEach((m,i)=>{
+    footerPlanned+=colPlanned[i]; footerSpent+=colSpent[i];
+    html+=`<td class="sb-td-plan hide-number has-val">${colPlanned[i]>0?fmt(colPlanned[i]):'-'}</td>`;
+    html+=`<td class="sb-td-spent hide-number">${colSpent[i]>0?`<span class="sb-neg">-${fmt(colSpent[i])}</span>`:'-'}</td>`;
+  });
+  const footerNet=footerPlanned-footerSpent;
+  html+=`<td class="sb-td-total hide-number ${footerNet>0?'pos':footerNet<0?'neg':'zero'}">${footerNet>0?'+':footerNet<0?'-':''}${fmt(Math.abs(footerNet))}</td>`;
+  html+=`</tr></tbody></table>`;
+
+  document.getElementById('spTableWrap').innerHTML=html;
+  applyEyeState();
+}
+
+function editSPPlan(sub,month,td){
+  if(td.querySelector('input')) return;
+  const plans=loadSPPlans();
+  const defaultVal=DEFAULT_BUDGETS[sub]||0;
+  const current=plans[sub]?.[month]!=null?plans[sub][month]:defaultVal;
+  td.innerHTML=`<input type="number" inputmode="numeric" value="${current}" style="width:64px;background:var(--bg);border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-size:12px;padding:3px 5px;font-family:'IBM Plex Mono',monospace;outline:none;text-align:right">`;
+  const inp=td.querySelector('input');
+  inp.focus(); inp.select();
+  const save=()=>{
+    const val=parseFloat(inp.value);
+    if(!plans[sub]) plans[sub]={};
+    plans[sub][month]=isNaN(val)?defaultVal:val;
+    saveSPPlans(plans);
+    renderSpendable();
+  };
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){inp.removeEventListener('blur',save);save();}
+    if(e.key==='Escape') renderSpendable();
   });
 }
 
