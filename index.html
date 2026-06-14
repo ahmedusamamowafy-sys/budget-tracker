@@ -14,19 +14,51 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0D0D0F;--surface:#161618;--card:#1E1E22;--border:#2A2A30;--border2:#353540;--text:#F0F0F5;--muted:#70707A;--accent:#C8F135;--accent2:#A8D020;--red:#FF4D4D;--purple:#A78BFA;--blue:#60A5FA;--green:#4ADE80;--saving-bg:#1A1A2E;--spend-bg:#0F2E1A;--r:16px;--r2:12px;}
+:root{--bg:#0A0A0D;--surface:#161618;--card:#1E1E22;--border:#2A2A30;--border2:#353540;--text:#F0F0F5;--muted:#70707A;--accent:#C8F135;--accent2:#A8D020;--red:#FF4D4D;--purple:#A78BFA;--blue:#60A5FA;--green:#4ADE80;--saving-bg:#1A1A2E;--spend-bg:#0F2E1A;--r:16px;--r2:12px;
+  --gradient-accent:linear-gradient(135deg,#D7FF5C 0%,#C8F135 45%,#9FE03A 100%);
+  --gradient-card:linear-gradient(160deg,rgba(255,255,255,0.045) 0%,rgba(255,255,255,0) 60%);
+  --glow-accent:0 0 24px rgba(200,241,53,0.22);
+  --shadow-sm:0 2px 10px rgba(0,0,0,0.30);
+  --shadow-md:0 10px 28px rgba(0,0,0,0.40);
+  --shadow-lg:0 20px 50px rgba(0,0,0,0.50);
+  --glass:rgba(30,30,34,0.6);
+  --glass-border:rgba(255,255,255,0.07);
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;overflow-x:hidden}
+html,body{height:100%;color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;overflow-x:hidden}
+body{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(circle at 12% -8%, rgba(200,241,53,0.12) 0%, transparent 42%),
+    radial-gradient(circle at 112% 18%, rgba(96,165,250,0.10) 0%, transparent 38%),
+    radial-gradient(circle at 50% 115%, rgba(167,139,250,0.09) 0%, transparent 45%);
+  background-attachment:fixed,fixed,fixed;
+  background-repeat:no-repeat;
+}
+.page.active{animation:pageIn 0.4s cubic-bezier(.22,.61,.36,1)}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 /* LOGIN */
-.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
-.login-box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:32px 24px}
-.login-logo{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);text-align:center;margin-bottom:6px}
+.login-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(200,241,53,0.16) 0%, transparent 40%),
+    radial-gradient(circle at 88% 12%, rgba(96,165,250,0.14) 0%, transparent 38%),
+    radial-gradient(circle at 75% 92%, rgba(167,139,250,0.14) 0%, transparent 42%),
+    var(--bg);
+}
+.login-screen::before,.login-screen::after{content:'';position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;opacity:0.55}
+.login-screen::before{width:260px;height:260px;background:radial-gradient(circle,var(--accent),transparent 70%);top:-80px;left:-60px;animation:floatBlob 9s ease-in-out infinite}
+.login-screen::after{width:300px;height:300px;background:radial-gradient(circle,var(--blue),transparent 70%);bottom:-100px;right:-80px;animation:floatBlob 11s ease-in-out infinite reverse}
+@keyframes floatBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-20px) scale(1.08)}}
+.login-box{position:relative;width:100%;max-width:360px;background:linear-gradient(160deg,rgba(40,40,46,0.75) 0%,rgba(22,22,26,0.85) 100%);border:1px solid var(--glass-border);border-radius:calc(var(--r) + 4px);padding:32px 24px;backdrop-filter:blur(18px);box-shadow:var(--shadow-lg);animation:loginIn 0.5s cubic-bezier(.22,.61,.36,1)}
+@keyframes loginIn{from{opacity:0;transform:translateY(16px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.login-illustration{display:block;margin:0 auto 14px;width:120px;height:120px}
+.login-logo{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;text-align:center;margin-bottom:6px;background:var(--gradient-accent);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-0.5px}
 .login-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:28px;font-family:'IBM Plex Mono',monospace}
 .login-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;display:block;font-family:'IBM Plex Mono',monospace}
-.login-input{width:100%;padding:13px 16px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);font-size:15px;font-family:'IBM Plex Sans Arabic',sans-serif;outline:none;margin-bottom:14px;transition:border-color 0.2s}
-.login-input:focus{border-color:var(--accent)}
-.login-btn{width:100%;padding:15px;background:var(--accent);color:#0D0D0F;border:none;border-radius:var(--r2);font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;font-family:'IBM Plex Sans Arabic',sans-serif;transition:background 0.15s}
-.login-btn:active{background:var(--accent2)}
+.login-input{width:100%;padding:13px 16px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);font-size:15px;font-family:'IBM Plex Sans Arabic',sans-serif;outline:none;margin-bottom:14px;transition:border-color 0.2s,box-shadow 0.2s}
+.login-input:focus{border-color:var(--accent);box-shadow:var(--glow-accent)}
+.login-btn{width:100%;padding:15px;background:var(--gradient-accent);color:#0D0D0F;border:none;border-radius:var(--r2);font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;font-family:'IBM Plex Sans Arabic',sans-serif;transition:transform 0.15s,box-shadow 0.15s;box-shadow:var(--glow-accent)}
+.login-btn:active{transform:scale(0.98);box-shadow:0 0 12px rgba(200,241,53,0.18)}
 .login-err{color:var(--red);font-size:12px;text-align:center;margin-top:10px;min-height:18px;font-family:'IBM Plex Mono',monospace}
 /* TOPBAR */
 .topbar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between}
@@ -276,6 +308,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Pl
 .admin-cb{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 optgroup{background:var(--card);color:var(--muted);font-size:12px}option{background:var(--card);color:var(--text)}
+
+/* ── PROFESSIONAL POLISH LAYER ──────────────────────────────── */
+/* Glass topbar / nav */
+.topbar{background:rgba(10,10,13,0.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.nav{background:rgba(22,22,24,0.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.nav-tab{transition:color 0.2s,border-color 0.2s,text-shadow 0.2s}
+.nav-tab.active{text-shadow:0 0 16px rgba(200,241,53,0.45)}
+
+/* Card depth + subtle glass sheen */
+.amount-block,.chart-canvas-wrap,.kpi-card,.box-card,.export-card,.budget-section,.budget-header,.admin-user-card,.expense-item,.sb-sum-card,.boxes-summary,.arrange-item,.import-row-ok,.import-row-err{
+  background-image:var(--gradient-card);
+  box-shadow:var(--shadow-sm);
+  transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease;
+}
+@media (hover:hover){
+  .box-card:hover,.kpi-card:hover,.export-card:hover,.chart-canvas-wrap:hover,.admin-user-card:hover{
+    transform:translateY(-2px);
+    box-shadow:var(--shadow-md);
+    border-color:var(--border2);
+  }
+}
+.amount-block:has(.amount-input:focus){box-shadow:var(--glow-accent),var(--shadow-sm)}
+
+/* Gradient glow buttons */
+.submit-btn,.btn-save,.budget-save-btn,.export-btn.accent{background:var(--gradient-accent);box-shadow:var(--glow-accent);transition:transform 0.15s,box-shadow 0.15s}
+.submit-btn:active,.btn-save:active,.budget-save-btn:active,.export-btn.accent:active{transform:scale(0.98);box-shadow:0 0 12px rgba(200,241,53,0.18)}
+
+/* Modal polish */
+.modal-overlay{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:rgba(0,0,0,0.62)}
+.modal{background:linear-gradient(165deg,rgba(42,42,48,0.97) 0%,rgba(20,20,24,0.98) 100%);box-shadow:0 -12px 44px rgba(0,0,0,0.5);border-color:var(--glass-border)}
+
+/* Toast glass */
+.toast{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(30,30,34,0.85);box-shadow:var(--shadow-md)}
+
+/* Install button glow */
+#installAppBtn{background:var(--gradient-accent)!important;box-shadow:var(--glow-accent),var(--shadow-md);transition:transform 0.2s,box-shadow 0.2s}
+#installAppBtn:active{transform:scale(0.95)}
+
+/* Month chips / dash sub-tabs active glow */
+.month-chip.active,.dash-sub-tab.active{box-shadow:var(--glow-accent)}
+
+/* Progress bars: smoother easing + faint glow */
+.progress-fill,.box-progress-fill{box-shadow:0 0 10px rgba(255,255,255,0.08) inset;transition:width 0.7s cubic-bezier(.22,.61,.36,1)}
 </style>
 </head>
 <body>
@@ -332,6 +407,31 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 <!-- LOGIN -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
+    <svg class="login-illustration" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lgA" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#D7FF5C"/>
+          <stop offset="100%" stop-color="#9FE03A"/>
+        </linearGradient>
+        <linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#60A5FA"/>
+          <stop offset="100%" stop-color="#3B82F6"/>
+        </linearGradient>
+        <linearGradient id="lgC" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#A78BFA"/>
+          <stop offset="100%" stop-color="#7C5CFC"/>
+        </linearGradient>
+      </defs>
+      <circle cx="100" cy="100" r="92" fill="rgba(255,255,255,0.03)"/>
+      <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <rect x="48" y="100" width="20" height="55" rx="5" fill="url(#lgB)" opacity="0.85"/>
+      <rect x="78" y="78" width="20" height="77" rx="5" fill="url(#lgA)"/>
+      <rect x="108" y="60" width="20" height="95" rx="5" fill="url(#lgC)" opacity="0.85"/>
+      <rect x="138" y="90" width="20" height="65" rx="5" fill="url(#lgB)" opacity="0.6"/>
+      <circle cx="150" cy="52" r="22" fill="url(#lgA)"/>
+      <text x="150" y="59" font-family="IBM Plex Mono, monospace" font-size="20" font-weight="700" fill="#0D0D0F" text-anchor="middle">$</text>
+      <path d="M48 95 L78 70 L108 52 L138 80" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4"/>
+    </svg>
     <div class="login-logo">💰 Budget</div>
     <div class="login-sub">Personal Finance Tracker</div>
     <label class="login-label">Username</label>
@@ -1757,61 +1857,93 @@ function renderCharts(){
   }).join('');
   applyEyeState();
 }
+let _chartAnimFrame=null;
+function drawRoundedBar(ctx,x,y,w,h,r){
+  if(h<=0){ctx.beginPath();return;}
+  r=Math.min(r,w/2,h);
+  ctx.beginPath();
+  ctx.moveTo(x,y+h);
+  ctx.lineTo(x,y+r);
+  ctx.arcTo(x,y,x+r,y,r);
+  ctx.lineTo(x+w-r,y);
+  ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h);
+  ctx.closePath();
+}
 function drawChart(labels,spent,budgets){
   const canvas=document.getElementById('barChart');
   const ctx=canvas.getContext('2d');
   const W=canvas.parentElement.clientWidth-32;
   const H=220;
   canvas.width=W;canvas.height=H;
-  ctx.clearRect(0,0,W,H);
   const n=labels.length;
-  if(!n){ctx.fillStyle='#70707A';ctx.font='14px IBM Plex Mono';ctx.textAlign='center';ctx.fillText('No data for this selection',W/2,H/2);return;}
+  if(!n){ctx.clearRect(0,0,W,H);ctx.fillStyle='#70707A';ctx.font='14px IBM Plex Mono';ctx.textAlign='center';ctx.fillText('No data for this selection',W/2,H/2);return;}
   const pad={top:20,right:10,bottom:65,left:54};
   const cW=W-pad.left-pad.right, cH=H-pad.top-pad.bottom;
   const maxVal=Math.max(...spent,...budgets,1)*1.12;
   const slotW=cW/n;
   const barW=Math.max(6,Math.min(22,slotW*0.35));
-  // Grid
-  ctx.strokeStyle='#2A2A30';ctx.lineWidth=1;
-  for(let i=0;i<=4;i++){
-    const y=pad.top+cH-(cH*i/4);
-    ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
-    ctx.fillStyle='#70707A';ctx.font='9px IBM Plex Mono';ctx.textAlign='right';
-    ctx.fillText(fmt(Math.round(maxVal*i/4)),pad.left-4,y+3);
+  const radius=4;
+  if(_chartAnimFrame) cancelAnimationFrame(_chartAnimFrame);
+  const duration=500;
+  const start=performance.now();
+  function frame(now){
+    const t=Math.min(1,(now-start)/duration);
+    const ease=1-Math.pow(1-t,3);
+    ctx.clearRect(0,0,W,H);
+    // Grid
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const y=pad.top+cH-(cH*i/4);
+      ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+      ctx.fillStyle='#70707A';ctx.font='9px IBM Plex Mono';ctx.textAlign='right';
+      ctx.fillText(fmt(Math.round(maxVal*i/4)),pad.left-4,y+3);
+    }
+    // Bars
+    labels.forEach((lbl,i)=>{
+      const cx=pad.left+slotW*i+slotW/2;
+      const bHb=(budgets[i]>0?(budgets[i]/maxVal)*cH:0)*ease;
+      const bHs=(spent[i]/maxVal)*cH*ease;
+      const over=budgets[i]>0&&spent[i]>budgets[i];
+      // Budget bar
+      if(budgets[i]>0){
+        const grad=ctx.createLinearGradient(0,pad.top+cH-bHb,0,pad.top+cH);
+        grad.addColorStop(0,'rgba(200,241,53,0.45)');
+        grad.addColorStop(1,'rgba(200,241,53,0.08)');
+        ctx.fillStyle=grad;
+        ctx.strokeStyle='rgba(200,241,53,0.55)';ctx.lineWidth=1;
+        drawRoundedBar(ctx,cx-barW-1,pad.top+cH-bHb,barW,bHb,radius);
+        ctx.fill();ctx.stroke();
+        if(t===1){
+          ctx.fillStyle='rgba(200,241,53,0.8)';ctx.font='bold 8px IBM Plex Mono';ctx.textAlign='center';
+          ctx.fillText(fmt(budgets[i]),cx-barW/2-1,pad.top+cH-bHb-4);
+        }
+      }
+      // Spent bar
+      if(spent[i]>0){
+        const grad=ctx.createLinearGradient(0,pad.top+cH-bHs,0,pad.top+cH);
+        grad.addColorStop(0,over?'rgba(255,90,90,0.95)':'rgba(120,190,255,0.95)');
+        grad.addColorStop(1,over?'rgba(255,77,77,0.22)':'rgba(96,165,250,0.18)');
+        ctx.fillStyle=grad;
+        drawRoundedBar(ctx,cx+1,pad.top+cH-bHs,barW,bHs,radius);
+        ctx.fill();
+        if(t===1){
+          ctx.fillStyle=over?'rgba(255,120,120,1)':'rgba(170,210,255,1)';ctx.font='bold 8px IBM Plex Mono';ctx.textAlign='center';
+          ctx.fillText(fmt(spent[i]),cx+barW/2+1,pad.top+cH-bHs-4);
+        }
+      }
+      // Label
+      ctx.save();
+      ctx.translate(cx,pad.top+cH+6);
+      ctx.rotate(-Math.PI/3.5);
+      ctx.fillStyle='#A0A0B0';ctx.font='9px IBM Plex Mono';ctx.textAlign='right';
+      const short=lbl.length>13?lbl.substring(0,13)+'…':lbl;
+      ctx.fillText(short,0,0);
+      ctx.restore();
+    });
+    if(t<1) _chartAnimFrame=requestAnimationFrame(frame);
   }
-  // Bars
-  labels.forEach((lbl,i)=>{
-    const cx=pad.left+slotW*i+slotW/2;
-    const bHb=budgets[i]>0?(budgets[i]/maxVal)*cH:0;
-    const bHs=(spent[i]/maxVal)*cH;
-    const over=budgets[i]>0&&spent[i]>budgets[i];
-    // Budget bar
-    if(budgets[i]>0){
-      ctx.fillStyle='rgba(200,241,53,0.18)';
-      ctx.strokeStyle='rgba(200,241,53,0.55)';ctx.lineWidth=1;
-      ctx.fillRect(cx-barW-1,pad.top+cH-bHb,barW,bHb);
-      ctx.strokeRect(cx-barW-1,pad.top+cH-bHb,barW,bHb);
-      // Budget data label
-      ctx.fillStyle='rgba(200,241,53,0.8)';ctx.font='bold 8px IBM Plex Mono';ctx.textAlign='center';
-      ctx.fillText(fmt(budgets[i]),cx-barW/2-1,pad.top+cH-bHb-4);
-    }
-    // Spent bar
-    if(spent[i]>0){
-      ctx.fillStyle=over?'rgba(255,77,77,0.9)':'rgba(96,165,250,0.85)';
-      ctx.fillRect(cx+1,pad.top+cH-bHs,barW,bHs);
-      // Spent data label
-      ctx.fillStyle=over?'rgba(255,100,100,1)':'rgba(150,200,255,1)';ctx.font='bold 8px IBM Plex Mono';ctx.textAlign='center';
-      ctx.fillText(fmt(spent[i]),cx+barW/2+1,pad.top+cH-bHs-4);
-    }
-    // Label
-    ctx.save();
-    ctx.translate(cx,pad.top+cH+6);
-    ctx.rotate(-Math.PI/3.5);
-    ctx.fillStyle='#A0A0B0';ctx.font='9px IBM Plex Mono';ctx.textAlign='right';
-    const short=lbl.length>13?lbl.substring(0,13)+'…':lbl;
-    ctx.fillText(short,0,0);
-    ctx.restore();
-  });
+  _chartAnimFrame=requestAnimationFrame(frame);
 }
 
 // EXPORT
