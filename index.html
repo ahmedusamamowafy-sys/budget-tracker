@@ -339,6 +339,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <input class="login-input" id="loginPass" type="password" placeholder="Enter password" autocomplete="current-password">
     <button class="login-btn" onclick="doLogin()">Sign In</button>
     <div class="login-err" id="loginErr"></div>
+    <button class="login-btn" id="installAppBtn" onclick="installApp()" style="margin-top:10px;background:transparent;border:1px solid var(--border2);color:var(--accent)">📲 Get on Your Device</button>
   </div>
 </div>
 
@@ -1151,6 +1152,35 @@ function getUserPerms(username){
 
 function canView(tab){ return currentUser?.role==='admin' || getUserPerms(currentUser?.name)?.[tab]?.view!==false; }
 function canEdit(tab){ return currentUser?.role==='admin' || getUserPerms(currentUser?.name)?.[tab]?.edit!==false; }
+
+// ── PWA INSTALL ───────────────────────────────────────────
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+});
+window.addEventListener('appinstalled',()=>{
+  deferredInstallPrompt=null;
+  const btn=document.getElementById('installAppBtn');
+  if(btn) btn.style.display='none';
+  showToast('✅ App installed!');
+});
+function installApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(()=>{ deferredInstallPrompt=null; });
+    return;
+  }
+  const ua=navigator.userAgent||'';
+  const isIOS=/iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  if(isIOS){
+    alert('To install: tap the Share button (square with arrow) below, then choose "Add to Home Screen".');
+  } else if(window.matchMedia('(display-mode: standalone)').matches){
+    alert('App is already installed on this device.');
+  } else {
+    alert('To install: open your browser menu and choose "Add to Home Screen" or "Install App".');
+  }
+}
 document.addEventListener('DOMContentLoaded',()=>{
   // Pre-fill script code block in setup screen
   const sb = document.getElementById('gsScriptBlock');
