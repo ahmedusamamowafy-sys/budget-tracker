@@ -978,7 +978,20 @@ function saveExpenses(a){localStorage.setItem(STORAGE_KEY,JSON.stringify(a));}
 function getCurrentMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
 function formatMonth(ym){const[y,m]=ym.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y;}
 function fmt(n){return Math.round(n).toLocaleString('en-SA');}
-function fmtDateTime(iso){if(!iso)return'';const d=new Date(iso);if(isNaN(d.getTime()))return'';const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const hh=String(d.getHours()).padStart(2,'0');const mm=String(d.getMinutes()).padStart(2,'0');return`${d.getDate()} ${months[d.getMonth()]}, ${hh}:${mm}`;}
+function fmtDateTime(iso){
+  if(!iso)return'';
+  const d=new Date(iso);
+  if(isNaN(d.getTime()))return'';
+  const y=d.getFullYear();
+  const mo=String(d.getMonth()+1).padStart(2,'0');
+  const da=String(d.getDate()).padStart(2,'0');
+  let h=d.getHours();
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  const ampm=h>=12?'PM':'AM';
+  h=h%12; if(h===0)h=12;
+  const hh=String(h).padStart(2,'0');
+  return`${y}-${mo}-${da} - ${hh}:${mm} ${ampm}`;
+}
 function getMonths(){const m=[...new Set(loadExpenses().map(e=>e.month))].sort().reverse();if(!m.includes(getCurrentMonth()))m.unshift(getCurrentMonth());return m;}
 
 // LOGIN
