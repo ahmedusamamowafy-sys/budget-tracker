@@ -832,6 +832,50 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 
 </div><!-- end appWrap -->
 
+<!-- COPY TO NEXT MONTH MODAL -->
+<div class="modal-overlay" id="copyNextMonthModal" onclick="closeCopyNextMonthModal(event)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">
+      <span id="copyNextMonthTitle">📋 Copy to Next Month</span>
+      <button class="modal-close" onclick="document.getElementById('copyNextMonthModal').classList.remove('open')">✕</button>
+    </div>
+    <p id="copyNextMonthDesc" style="color:var(--muted);font-size:12px;margin:0 0 14px 0;font-family:'IBM Plex Mono',monospace"></p>
+    <div class="form-row">
+      <label class="form-label">Salary for the new month (SAR)</label>
+      <input class="form-input" id="copyNextSalary" type="number" inputmode="decimal">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Investments for the new month (SAR)</label>
+      <input class="form-input" id="copyNextInvest" type="number" inputmode="decimal">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('copyNextMonthModal').classList.remove('open')">Cancel</button>
+      <button class="btn-save" onclick="confirmCopyNextMonth()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY EDIT MODAL -->
+<div class="modal-overlay" id="catEditModal" onclick="closeCatEditModal(event)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">
+      <span>✏️ Edit Category</span>
+      <button class="modal-close" onclick="document.getElementById('catEditModal').classList.remove('open')">✕</button>
+    </div>
+    <input type="hidden" id="catEditOrigSub">
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="catEditName" type="text">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('catEditModal').classList.remove('open')">Cancel</button>
+      <button class="btn-save" onclick="saveCatEditName()">💾 Save Name</button>
+    </div>
+    <div style="height:1px;background:var(--border2);margin:16px 0"></div>
+    <button class="btn-save" id="catEditMoveBtn" style="width:100%" onclick="moveCatType()"></button>
+  </div>
+</div>
+
 <!-- ADD CATEGORY MODAL -->
 <div class="modal-overlay" id="addCatModal" onclick="closeAddCatModal(event)">
   <div class="modal">
@@ -961,10 +1005,19 @@ function saveSettings(s){
   localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));
   gsPush('saveKV',{key:'settings',value:s});
 }
-function getSalary(){return loadSettings().salary??16000;}
-function getSavingBox(){return loadSettings().savingBox??7500;}
-function getInvestments(){return loadSettings().investments??5700;}
-function getSpendable(){return getSalary()-getSavingBox()-getInvestments();}
+function getSalary(month){
+  const plan=getBudgetForMonth(month||getCurrentMonth());
+  return (plan._salary!=null?plan._salary:null)??loadSettings().salary??16000;
+}
+function getSavingBox(month){
+  const plan=getBudgetForMonth(month||getCurrentMonth());
+  return ALL_CATEGORIES.filter(c=>c.type==='Saving Box').reduce((s,c)=>s+(plan[c.sub]||0),0);
+}
+function getInvestments(month){
+  const plan=getBudgetForMonth(month||getCurrentMonth());
+  return (plan._investments!=null?plan._investments:null)??loadSettings().investments??5700;
+}
+function getSpendable(month){return getSalary(month)-getSavingBox(month)-getInvestments(month);}
 function normExp(e){
   let m=e.month,dt=e.date;
   // Use toLocaleDateString('sv') → always returns YYYY-MM-DD in browser local timezone
@@ -975,6 +1028,30 @@ function normExp(e){
 }
 function normMonth(e){return normExp(e);}function loadExpenses(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]').map(normExp);}catch(e){return[];}}
 function saveExpenses(a){localStorage.setItem(STORAGE_KEY,JSON.stringify(a));}
+// Merge expenses pulled from the Google Sheet backend with what's stored locally,
+// preserving createdAt/addedBy when the backend doesn't return them (Feature: log timestamp persistence)
+function mergeExpensesPreserveMeta(pulled, local){
+  const byId={}, byKey={};
+  local.forEach(e=>{
+    if(e.id!=null) byId[e.id]=e;
+    const key=`${e.date}|${e.sub}|${e.amount}|${e.pay}|${e.desc||''}`;
+    if(!byKey[key]) byKey[key]=e;
+  });
+  return pulled.map(e=>{
+    let loc=(e.id!=null)?byId[e.id]:null;
+    if(!loc){
+      const key=`${e.date}|${e.sub}|${e.amount}|${e.pay}|${e.desc||''}`;
+      loc=byKey[key];
+    }
+    if(loc){
+      const patch={};
+      if((e.createdAt==null||e.createdAt==='') && loc.createdAt) patch.createdAt=loc.createdAt;
+      if((e.addedBy==null||e.addedBy==='') && loc.addedBy) patch.addedBy=loc.addedBy;
+      if(Object.keys(patch).length) return {...e,...patch};
+    }
+    return e;
+  });
+}
 function getCurrentMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
 function formatMonth(ym){const[y,m]=ym.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y;}
 function fmt(n){return Math.round(n).toLocaleString('en-SA');}
@@ -1088,7 +1165,7 @@ function showApp(){
     setSyncStatus('syncing');
     gsPullAll().then(res=>{
       if(!res){setSyncStatus('error');return;}
-      if(res.expenses) { localStorage.setItem(STORAGE_KEY,JSON.stringify(res.expenses)); }
+      if(res.expenses) { saveExpenses(mergeExpensesPreserveMeta(res.expenses, loadExpenses())); }
       if(res.settings)  { localStorage.setItem(SETTINGS_KEY,JSON.stringify(res.settings)); }
       if(res.budget_plans){ localStorage.setItem(BUDGET_PLANS_KEY,JSON.stringify(res.budget_plans)); }
       if(res.perms)     { localStorage.setItem(PERMS_KEY,JSON.stringify(res.perms)); }
@@ -1290,7 +1367,7 @@ async function saveAndSync(){
     await new Promise(r=>setTimeout(r,2000));
     const res=await gsPullAll();
     if(res){
-      if(res.expenses) localStorage.setItem('ksa_budget_expenses',JSON.stringify(res.expenses));
+      if(res.expenses) saveExpenses(mergeExpensesPreserveMeta(res.expenses, loadExpenses()));
       if(res.settings) localStorage.setItem('ksa_budget_settings',JSON.stringify(res.settings));
       if(res.budget_plans) localStorage.setItem('ksa_budget_budget_plans',JSON.stringify(res.budget_plans));
       if(res.perms) localStorage.setItem('ksa_budget_perms',JSON.stringify(res.perms));
@@ -1485,7 +1562,7 @@ function saveKpi(field,elId,orig){
 function renderMonthlyDash(){
   const months=getMonths();
   document.getElementById('dashMonthTabs').innerHTML=months.map(m=>`<div class="month-chip ${m===selectedDashMonth?'active':''}" onclick="selectDashMonth('${m}')">${formatMonth(m)}</div>`).join('');
-  const SAL=getSalary(),SB=getSavingBox(),INV=getInvestments(),SP=getSpendable();
+  const SAL=getSalary(selectedDashMonth),SB=getSavingBox(selectedDashMonth),INV=getInvestments(selectedDashMonth),SP=getSpendable(selectedDashMonth);
   const expenses=loadExpenses().filter(e=>e.month===selectedDashMonth);
   // Feature 5: dashboard uses only Spendable expenses for spent/remaining/savings
   const spentSP=expenses.filter(e=>e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
@@ -1519,7 +1596,8 @@ function renderGrandDash(){
   const all=loadExpenses();
   const realMonths=[...new Set(all.map(e=>e.month))].sort();
   const n=realMonths.length;
-  const tSal=n*getSalary(),tSB=n*getSavingBox(),tInv=n*getInvestments();
+  let tSal=0,tSB=0,tInv=0;
+  realMonths.forEach(m=>{tSal+=getSalary(m);tSB+=getSavingBox(m);tInv+=getInvestments(m);});
   const tSpent=all.filter(e=>e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
   const tSav=tSal-tSB-tInv-tSpent;
   document.getElementById('gMonths').textContent=n+' months';
@@ -1533,7 +1611,7 @@ function renderGrandDash(){
   if(!realMonths.length){tbody.innerHTML=`<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:20px">No data yet</td></tr>`;return;}
   tbody.innerHTML=[...realMonths].reverse().map(m=>{
     const mSP=all.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
-    const mSav=getSalary()-getSavingBox()-getInvestments()-mSP;
+    const mSav=getSalary(m)-getSavingBox(m)-getInvestments(m)-mSP;
     return`<tr><td>${formatMonth(m)}</td><td class="num salary-kpi">${fmt(mSP)}</td><td class="num salary-kpi ${mSav>=0?'pos':'neg'}">${fmt(mSav)}</td></tr>`;
   }).join('');
   applyEyeState();
@@ -1809,10 +1887,10 @@ function renderBudgetTab(){
   let html='';
 
   // ── Section 1: Gross Salary ──
-  html+=budgetTopCard('💰 Gross Salary','salary',plan._salary??getSalary(),'var(--blue)','Monthly gross income',null,isViewer);
+  html+=budgetTopCard('💰 Gross Salary','_salary',getSalary(month),'var(--blue)','Monthly gross income',null,isViewer);
 
   // ── Section 2: Investments ──
-  html+=budgetTopCard('📈 Investments','_investments',plan._investments??getInvestments(),'var(--blue)','Fixed monthly investment deducted from salary',null,isViewer);
+  html+=budgetTopCard('📈 Investments','_investments',getInvestments(month),'var(--blue)','Fixed monthly investment deducted from salary',null,isViewer);
 
   // ── Section 3: Saving Box ──
   const sbCats=ALL_CATEGORIES.filter(c=>c.type==='Saving Box');
@@ -1825,8 +1903,8 @@ function renderBudgetTab(){
   html+=buildCategorySection('💸 Spendable Budget','spendable',spCats,plan,subAvg,isViewer,spTotal,'var(--green)');
 
   // ── Summary bar ──
-  const salary=plan._salary??getSalary();
-  const investments=plan._investments??getInvestments();
+  const salary=getSalary(month);
+  const investments=getInvestments(month);
   const leftover=salary-sbTotal-investments-spTotal;
   html+=`<div class="budget-total-bar" style="flex-direction:column;gap:6px;align-items:stretch">
     <div style="display:flex;justify-content:space-between"><span class="budget-total-label">Saving Box Total</span><span class="salary-kpi" style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--purple)">${fmt(sbTotal)} SAR</span></div>
@@ -1885,7 +1963,7 @@ function buildCategorySection(title, sectionId, cats, plan, subAvg, isViewer, se
         <div style="flex:1;min-width:0">
           <div class="budget-row-name" style="display:flex;align-items:center;gap:5px">
             <span>${c.sub}</span>
-            ${!isViewer?`<button onclick="renameCat('${escapedSub}')" title="Rename" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:1px 3px;opacity:0.5;line-height:1;border-radius:4px;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✏️</button>`:''}
+            ${!isViewer?`<button onclick="openCatEditModal('${escapedSub}')" title="Edit" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:1px 3px;opacity:0.5;line-height:1;border-radius:4px;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✏️</button>`:''}
           </div>
           <div class="budget-row-hint hide-number" style="color:${hintColor}">💡 ${hint}</div>
         </div>
@@ -1972,11 +2050,13 @@ function saveBudgetPlan(){
   });
   plans[month]=plan;
   saveBudgetPlans(plans);
-  // Also persist salary/investments to settings so dashboard picks them up
-  const s=loadSettings();
-  if(plan.salary) s.salary=plan.salary;
-  if(plan._investments) s.investments=plan._investments;
-  saveSettings(s);
+  // Persist salary/investments to settings as the fallback default for future months
+  if(month===getCurrentMonth()){
+    const s=loadSettings();
+    if(plan._salary) s.salary=plan._salary;
+    if(plan._investments) s.investments=plan._investments;
+    saveSettings(s);
+  }
   showToast(`✅ Budget saved for ${formatMonth(month)}`);
   renderBudgetTab();
   updateDynamicBudgets(month, plan);
@@ -2048,13 +2128,10 @@ function rebuildDropdowns(){
   if(sel1){ const v=sel1.value; sel1.innerHTML=html; if(v) sel1.value=v; }
   if(sel2){ const v=sel2.value; sel2.innerHTML=html.replace('<option value="">Select category...</option>',''); if(v) sel2.value=v; }
 }
-function renameCat(oldSub){
+// Shared rename logic: updates ALL_CATEGORIES, expenses, budget plans, defaults
+function renameCatTo(oldSub, nn){
   const cat=ALL_CATEGORIES.find(c=>c.sub===oldSub);
-  if(!cat) return;
-  const newSub=prompt(`Rename "${oldSub}" to:`, oldSub);
-  if(!newSub || newSub.trim()==='' || newSub.trim()===oldSub) return;
-  const nn=newSub.trim();
-  if(ALL_CATEGORIES.find(c=>c.sub===nn)){ showToast('⚠️ Name already exists'); return; }
+  if(!cat) return false;
   // Update in ALL_CATEGORIES
   cat.sub=nn;
   // Update all expenses with old sub name
@@ -2078,7 +2155,73 @@ function renameCat(oldSub){
   renderLog();
   renderSavingBoxes();
   renderSpendable();
+  return true;
+}
+function renameCat(oldSub){
+  const cat=ALL_CATEGORIES.find(c=>c.sub===oldSub);
+  if(!cat) return;
+  const newSub=prompt(`Rename "${oldSub}" to:`, oldSub);
+  if(!newSub || newSub.trim()==='' || newSub.trim()===oldSub) return;
+  const nn=newSub.trim();
+  if(ALL_CATEGORIES.find(c=>c.sub===nn)){ showToast('⚠️ Name already exists'); return; }
+  renameCatTo(oldSub, nn);
   showToast(`✅ Renamed to "${nn}"`);
+}
+
+// ── CATEGORY EDIT MODAL (rename + move Spendable/Saving Box) ───────
+function openCatEditModal(sub){
+  const cat=ALL_CATEGORIES.find(c=>c.sub===sub);
+  if(!cat) return;
+  document.getElementById('catEditOrigSub').value=sub;
+  document.getElementById('catEditName').value=sub;
+  const btn=document.getElementById('catEditMoveBtn');
+  if(cat.type==='Spendable'){
+    btn.textContent='📦 Move to Saving Boxes';
+    btn.style.background='rgba(167,139,250,0.15)'; btn.style.color='var(--purple)'; btn.style.borderColor='rgba(167,139,250,0.4)';
+  } else {
+    btn.textContent='💸 Move to Spendable';
+    btn.style.background='rgba(74,222,128,0.12)'; btn.style.color='var(--green)'; btn.style.borderColor='rgba(74,222,128,0.4)';
+  }
+  document.getElementById('catEditModal').classList.add('open');
+  setTimeout(()=>document.getElementById('catEditName').focus(),100);
+}
+function closeCatEditModal(e){
+  if(e&&e.target!==document.getElementById('catEditModal'))return;
+  document.getElementById('catEditModal').classList.remove('open');
+}
+function saveCatEditName(){
+  const oldSub=document.getElementById('catEditOrigSub').value;
+  const newSub=document.getElementById('catEditName').value.trim();
+  if(!newSub){ showToast('⚠️ Enter a name'); return; }
+  if(newSub===oldSub){ closeCatEditModal(); return; }
+  if(ALL_CATEGORIES.find(c=>c.sub===newSub)){ showToast('⚠️ Name already exists'); return; }
+  if(renameCatTo(oldSub, newSub)){
+    document.getElementById('catEditOrigSub').value=newSub;
+    showToast(`✅ Renamed to "${newSub}"`);
+    closeCatEditModal();
+  }
+}
+function moveCatType(){
+  const sub=document.getElementById('catEditOrigSub').value;
+  const cat=ALL_CATEGORIES.find(c=>c.sub===sub);
+  if(!cat) return;
+  const newType=cat.type==='Spendable'?'Saving Box':'Spendable';
+  const label=newType==='Saving Box'?'Saving Boxes':'Spendable';
+  if(!confirm(`Move "${sub}" to ${label}?\n\nThis will update it everywhere in the app, including all past expenses recorded for it.`)) return;
+  cat.type=newType;
+  // Update all existing expenses recorded under this category
+  const exps=loadExpenses().map(e=>e.sub===sub?{...e,type:newType}:e);
+  saveExpenses(exps);
+  saveCustomCatsState();
+  rebuildDropdowns();
+  renderBudgetTab();
+  renderLog();
+  renderDash();
+  renderSavingBoxes();
+  renderSpendable();
+  if(typeof renderCharts==='function') renderCharts();
+  closeCatEditModal();
+  showToast(`✅ Moved "${sub}" to ${label}`);
 }
 function openAddCatModal(type){
   document.getElementById('newCatType').value=type;
@@ -2134,6 +2277,7 @@ function confirmDeleteBudgetOk(){
 }
 // ─────────────────────────────────────────────────────────────────
 
+let _pendingCopyMonth=null, _pendingCopyPlan=null;
 function copyBudgetForNextMonth(){
   const month=document.getElementById('budgetMonthSel').value;
   const plans=loadBudgetPlans();
@@ -2153,12 +2297,39 @@ function copyBudgetForNextMonth(){
   m+=1; if(m>12){m=1;y++;}
   const nextMonth=`${y}-${String(m).padStart(2,'0')}`;
   if(plans[nextMonth] && !confirm(`${formatMonth(nextMonth)} already has a budget. Overwrite?`)) return;
-  plans[nextMonth]={...plan};
+  // Stash category amounts (without salary/investments — those are asked for the new month)
+  _pendingCopyMonth=nextMonth;
+  _pendingCopyPlan={...plan};
+  delete _pendingCopyPlan._salary;
+  delete _pendingCopyPlan._investments;
+  document.getElementById('copyNextMonthDesc').textContent=`Copying category budgets from ${formatMonth(month)} to ${formatMonth(nextMonth)}.`;
+  document.getElementById('copyNextMonthTitle').textContent=`📋 Copy to ${formatMonth(nextMonth)}`;
+  document.getElementById('copyNextSalary').value=plan._salary??getSalary(month);
+  document.getElementById('copyNextInvest').value=plan._investments??getInvestments(month);
+  document.getElementById('copyNextMonthModal').classList.add('open');
+}
+function closeCopyNextMonthModal(e){
+  if(e&&e.target!==document.getElementById('copyNextMonthModal'))return;
+  document.getElementById('copyNextMonthModal').classList.remove('open');
+}
+function confirmCopyNextMonth(){
+  if(!_pendingCopyMonth){ closeCopyNextMonthModal(); return; }
+  const salary=parseFloat(document.getElementById('copyNextSalary').value)||0;
+  const invest=parseFloat(document.getElementById('copyNextInvest').value)||0;
+  const plans=loadBudgetPlans();
+  const nextMonth=_pendingCopyMonth;
+  plans[nextMonth]={..._pendingCopyPlan, _salary:salary, _investments:invest};
   saveBudgetPlans(plans);
-  showToast(`✅ Copied to ${formatMonth(nextMonth)}`);
+  document.getElementById('copyNextMonthModal').classList.remove('open');
   renderBudgetTab();
   document.getElementById('budgetMonthSel').value=nextMonth;
   renderBudgetTab();
+  showToast(`✅ Copied to ${formatMonth(nextMonth)}`);
+  const monthLabel=formatMonth(nextMonth);
+  _pendingCopyMonth=null; _pendingCopyPlan=null;
+  setTimeout(()=>{
+    alert(`📋 ${monthLabel} budget created with the new salary & investments.\n\n👉 Please review and adjust your Spendable and Saving Boxes amounts for ${monthLabel}, then tap 💾 Save.`);
+  },300);
 }
 
 // ── IMPORT ───────────────────────────────────────────────────
