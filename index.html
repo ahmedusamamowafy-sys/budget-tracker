@@ -371,8 +371,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div class="nav-tab" data-tab="budget" onclick="switchTab('budget',this)">💼 Budget</div>
   <div class="nav-tab" data-tab="savingboxes" onclick="switchTab('savingboxes',this)">💰 Saving Boxes</div>
   <div class="nav-tab" data-tab="spendable" onclick="switchTab('spendable',this)">💸 Spendable</div>
-  <div class="nav-tab" data-tab="export" onclick="switchTab('export',this)">⬇️ Export</div>
-  <div class="nav-tab" data-tab="import" onclick="switchTab('import',this)">⬆️ Import</div>
+  <div class="nav-tab" data-tab="import" onclick="switchTab('import',this)">⬆️📥 Import</div>
   <div class="nav-tab admin-only" data-tab="adminpref" onclick="switchTab('adminpref',this)" style="display:none">⚙️ Admin</div>
 </div>
 
@@ -399,11 +398,6 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <label class="form-label">Payment Method</label>
     <div class="select-wrap">
       <select class="form-select" id="payMethod">
-        <option value="CB">CB</option>
-        <option value="STC">STC</option>
-        <option value="RAJ">RAJ</option>
-        <option value="SAB">SAB</option>
-        <option value="Cash">Cash</option>
       </select>
     </div>
   </div>
@@ -703,33 +697,6 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 </div>
 </div>
 
-<!-- EXPORT -->
-<div class="page" id="page-export">
-<div class="export-wrap">
-  <div class="export-card">
-    <div class="export-title">📋 Copy for Excel</div>
-    <div class="export-desc">Select a month → Copy → Paste into your Excel Expenses sheet.</div>
-    <div class="select-wrap" style="margin-bottom:10px"><select class="form-select" id="exportMonthSel" onchange="updateCsvPreview()"></select></div>
-    <button class="export-btn accent" onclick="copyForExcel()">📋 Copy to Clipboard</button>
-    <div class="csv-preview" id="csvPreview"></div>
-  </div>
-  <div class="export-card">
-    <div class="export-title">🗑️ Clear Month Data</div>
-    <div class="export-desc">Remove all expenses for a month after pasting into Excel.</div>
-    <div class="select-wrap" style="margin-bottom:10px"><select class="form-select" id="clearMonthSel"></select></div>
-    <button class="export-btn" onclick="clearMonth()" style="color:var(--red);border-color:var(--red)">🗑️ Clear This Month</button>
-  </div>
-  <div class="export-card">
-    <div class="export-title">ℹ️ Monthly Workflow</div>
-    <div class="export-desc" style="margin-bottom:0">1. Log expenses daily here<br>2. Export → Copy → Paste into Excel<br>3. Click Close Month macro in Excel<br>4. Clear this month → fresh start ✅</div>
-  </div>
-  <div class="export-card">
-    <div class="export-title">☁️ Sync Settings</div>
-    <div class="export-desc">Re-configure or change your Google Sheets connection.</div>
-    <button class="export-btn" onclick="openSetup()">⚙️ Open Sync Setup</button>
-  </div>
-</div>
-</div>
 <!-- BUDGET TAB -->
 <div class="page" id="page-budget">
 <div class="budget-wrap">
@@ -779,6 +746,30 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       Col 7 — Payment Method
     </div>
   </div>
+
+  <div class="section-title" style="margin-top:8px">⬇️ Export</div>
+  <div class="export-card">
+    <div class="export-title">📋 Copy for Excel</div>
+    <div class="export-desc">Select a month → Copy → Paste into your Excel Expenses sheet. Includes a "Type" column (Spendable / Saving Boxes).</div>
+    <div class="select-wrap" style="margin-bottom:10px"><select class="form-select" id="exportMonthSel" onchange="updateCsvPreview()"></select></div>
+    <button class="export-btn accent" onclick="copyForExcel()">📋 Copy to Clipboard</button>
+    <div class="csv-preview" id="csvPreview"></div>
+  </div>
+  <div class="export-card">
+    <div class="export-title">🗑️ Clear Month Data</div>
+    <div class="export-desc">Remove all expenses for a month after pasting into Excel.</div>
+    <div class="select-wrap" style="margin-bottom:10px"><select class="form-select" id="clearMonthSel"></select></div>
+    <button class="export-btn" onclick="clearMonth()" style="color:var(--red);border-color:var(--red)">🗑️ Clear This Month</button>
+  </div>
+  <div class="export-card">
+    <div class="export-title">ℹ️ Monthly Workflow</div>
+    <div class="export-desc" style="margin-bottom:0">1. Log expenses daily here<br>2. Export → Copy → Paste into Excel<br>3. Click Close Month macro in Excel<br>4. Clear this month → fresh start ✅</div>
+  </div>
+  <div class="export-card">
+    <div class="export-title">☁️ Sync Settings</div>
+    <div class="export-desc">Re-configure or change your Google Sheets connection.</div>
+    <button class="export-btn" onclick="openSetup()">⚙️ Open Sync Setup</button>
+  </div>
 </div>
 </div>
 <div class="page" id="page-adminpref">
@@ -793,6 +784,11 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Add, edit, or remove user accounts.</div>
   <div id="adminUserMgmt"></div>
   <button class="submit-btn" onclick="openUserModal()" style="margin-top:8px;margin-bottom:24px">➕ Add User</button>
+
+  <div class="admin-section-title">💳 Payment Methods</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Add, rename, or remove payment methods shown in Add Expenses.</div>
+  <div id="adminPayMethods"></div>
+  <button class="submit-btn" onclick="openPayMethodModal()" style="margin-top:8px;margin-bottom:24px">➕ Add Payment Method</button>
 
   <div class="admin-section-title">🔐 Tab Permissions</div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:16px;font-family:'IBM Plex Mono',monospace">Control what each user can view and edit. Changes apply immediately on next login.</div>
@@ -827,6 +823,22 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       </div>
     </div>
     <button class="submit-btn" onclick="saveUserModal()">💾 Save User</button>
+  </div>
+</div>
+
+<!-- PAYMENT METHOD MODAL -->
+<div class="modal-overlay" id="payMethodModal" onclick="closePayMethodModal(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="payMethodModalTitle">➕ New Payment Method</span>
+      <button class="modal-close" onclick="document.getElementById('payMethodModal').classList.remove('open')">✕</button>
+    </div>
+    <input type="hidden" id="editPayMethodOrigName">
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="payMethodModalName" type="text" placeholder="e.g. Apple Pay">
+    </div>
+    <button class="submit-btn" onclick="savePayMethodModal()">💾 Save</button>
   </div>
 </div>
 
@@ -923,7 +935,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       <div class="select-wrap"><select class="form-select" id="editCat"></select></div>
     </div>
     <div class="form-row"><label class="form-label">Payment Method</label>
-      <div class="select-wrap"><select class="form-select" id="editPay"><option value="CB">CB</option><option value="STC">STC</option><option value="RAJ">RAJ</option><option value="SAB">SAB</option><option value="Cash">Cash</option></select></div>
+      <div class="select-wrap"><select class="form-select" id="editPay"></select></div>
     </div>
     <div class="form-row date-row">
       <div><label class="form-label">Date</label><input class="form-input" type="date" id="editDate"></div>
@@ -1102,6 +1114,34 @@ function savePerms(p){
   gsPush('saveKV',{key:'perms',value:p});
 }
 
+// ── PAYMENT METHODS ───────────────────────────────────────────
+const PAY_METHODS_KEY='ksa_payment_methods';
+const DEFAULT_PAY_METHODS=['CB','STC','RAJ','SAB','Cash'];
+function loadPaymentMethods(){
+  try{
+    const m=JSON.parse(localStorage.getItem(PAY_METHODS_KEY));
+    if(Array.isArray(m)&&m.length) return m;
+  }catch(e){}
+  return [...DEFAULT_PAY_METHODS];
+}
+function savePaymentMethods(m){
+  localStorage.setItem(PAY_METHODS_KEY,JSON.stringify(m));
+  gsPush('saveKV',{key:'payment_methods',value:m});
+}
+function buildPayMethodOptionsHTML(){
+  return loadPaymentMethods().map(m=>`<option value="${m}">${m}</option>`).join('');
+}
+function rebuildPayMethodDropdowns(){
+  const html=buildPayMethodOptionsHTML();
+  ['payMethod','editPay'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel) return;
+    const v=sel.value;
+    sel.innerHTML=html;
+    if(v && loadPaymentMethods().includes(v)) sel.value=v;
+  });
+}
+
 function getUserPerms(username){
   const stored=loadPerms();
   if(stored[username]) return stored[username];
@@ -1158,6 +1198,7 @@ function showApp(){
   }
   applyCustomCats();
   rebuildDropdowns();
+  rebuildPayMethodDropdowns();
   applyTabOrder();
   renderLog();renderDash();renderExport();populateChartFilters();renderBudgetTab();
   // Pull latest data from Google Sheets
@@ -1177,6 +1218,10 @@ function showApp(){
         localStorage.setItem(CUSTOM_CATS_KEY,JSON.stringify(res.custom_cats));
         ALL_CATEGORIES.length=0; res.custom_cats.forEach(c=>ALL_CATEGORIES.push(c));
         rebuildDropdowns();
+      }
+      if(res.payment_methods && Array.isArray(res.payment_methods) && res.payment_methods.length>0){
+        localStorage.setItem(PAY_METHODS_KEY,JSON.stringify(res.payment_methods));
+        rebuildPayMethodDropdowns();
       }
       setSyncStatus('idle');
       renderLog();renderDash();renderBudgetTab();
@@ -1210,11 +1255,10 @@ function switchTab(tab,el){
   el.classList.add('active');
   if(tab==='log')renderLog();
   if(tab==='dash')renderDash();
-  if(tab==='export')renderExport();
-  if(tab==='import')renderImportPreview();
+  if(tab==='import'){renderExport();renderImportPreview();}
   if(tab==='charts'){populateChartFilters();renderCharts();}
   if(tab==='budget')renderBudgetTab();
-  if(tab==='adminpref'){renderAdminPrefs();renderUserMgmt();}
+  if(tab==='adminpref'){renderAdminPrefs();renderUserMgmt();renderPayMethodMgmt();}
   if(tab==='boxes')renderBoxes();
   if(tab==='savingboxes')renderSavingBoxes();
   if(tab==='spendable')renderSpendable();
@@ -1378,6 +1422,10 @@ async function saveAndSync(){
         localStorage.setItem(CUSTOM_CATS_KEY,JSON.stringify(res.custom_cats));
         ALL_CATEGORIES.length=0; res.custom_cats.forEach(c=>ALL_CATEGORIES.push(c));
         rebuildDropdowns();
+      }
+      if(res.payment_methods && Array.isArray(res.payment_methods) && res.payment_methods.length>0){
+        localStorage.setItem(PAY_METHODS_KEY,JSON.stringify(res.payment_methods));
+        rebuildPayMethodDropdowns();
       }
     }
     btn.textContent='✅ Saved!';
@@ -1742,17 +1790,18 @@ function renderExport(){
   ['exportMonthSel','clearMonthSel'].forEach(id=>{document.getElementById(id).innerHTML=months.map(m=>`<option value="${m}">${formatMonth(m)}</option>`).join('');});
   updateCsvPreview();
 }
+function expTypeLabel(e){return e.type==='Saving Box'?'Saving Boxes':'Spendable';}
 function updateCsvPreview(){
   const month=document.getElementById('exportMonthSel')?.value||getCurrentMonth();
   const expenses=loadExpenses().filter(e=>e.month===month);
   if(!expenses.length){document.getElementById('csvPreview').textContent='(no expenses)';return;}
-  document.getElementById('csvPreview').textContent=expenses.map(e=>[e.main,e.sub,e.sub,e.date,e.amount,e.desc||'',e.pay].join('\t')).join('\n');
+  document.getElementById('csvPreview').textContent=expenses.map(e=>[e.main,e.sub,e.sub,e.date,e.amount,e.desc||'',e.pay,expTypeLabel(e)].join('\t')).join('\n');
 }
 function copyForExcel(){
   const month=document.getElementById('exportMonthSel').value;
   const expenses=loadExpenses().filter(e=>e.month===month);
   if(!expenses.length){showToast('⚠️ No expenses');return;}
-  const text=expenses.map(e=>[e.main,e.sub,e.sub,e.date,e.amount,e.desc||'',e.pay].join('\t')).join('\n');
+  const text=expenses.map(e=>[e.main,e.sub,e.sub,e.date,e.amount,e.desc||'',e.pay,expTypeLabel(e)].join('\t')).join('\n');
   navigator.clipboard.writeText(text).then(()=>showToast(`✅ ${expenses.length} rows copied!`)).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast(`✅ ${expenses.length} rows copied!`);});
 }
 function clearMonth(){
@@ -2429,8 +2478,7 @@ const ALL_TABS=[
   {id:'dash', label:'📊 Dashboard',    icon:'📊'},
   {id:'charts',label:'📈 Charts',      icon:'📈'},
   {id:'budget',label:'💼 Budget',      icon:'💼'},
-  {id:'export',label:'⬇️ Export',      icon:'⬇️'},
-  {id:'import',label:'⬆️ Import',      icon:'⬆️'},
+  {id:'import',label:'⬆️📥 Import',     icon:'⬆️'},
 ];
 
 // ── USER MANAGEMENT ───────────────────────────────────────────
@@ -2577,6 +2625,69 @@ function saveAdminPrefs(){
   savePerms(stored);
   pendingPerms={};
   showToast('✅ Permissions saved — applies on next login');
+}
+
+// ── PAYMENT METHOD MANAGEMENT ─────────────────────────────────
+function renderPayMethodMgmt(){
+  const container=document.getElementById('adminPayMethods');
+  if(!container) return;
+  const methods=loadPaymentMethods();
+  let html='';
+  methods.forEach(m=>{
+    html+=`<div class="admin-user-card">
+      <div class="admin-user-hdr">
+        <div class="admin-user-name">${m}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="edit-btn" onclick="openPayMethodModal('${m.replace(/'/g,"\\'")}')" title="Edit">✏️</button>
+          ${methods.length>1?`<button class="delete-btn" onclick="deletePayMethod('${m.replace(/'/g,"\\'")}')" title="Delete">✕</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML=html;
+}
+function openPayMethodModal(name){
+  document.getElementById('editPayMethodOrigName').value=name||'';
+  document.getElementById('payMethodModalTitle').textContent=name?'✏️ Edit Payment Method':'➕ New Payment Method';
+  document.getElementById('payMethodModalName').value=name||'';
+  document.getElementById('payMethodModal').classList.add('open');
+}
+function closePayMethodModal(e){
+  if(e && e.target.id!=='payMethodModal') return;
+  document.getElementById('payMethodModal').classList.remove('open');
+}
+function savePayMethodModal(){
+  const origName=document.getElementById('editPayMethodOrigName').value;
+  const name=document.getElementById('payMethodModalName').value.trim();
+  if(!name){ showToast('⚠️ Name required'); return; }
+  const methods=loadPaymentMethods();
+  if((!origName && methods.includes(name)) || (origName && origName!==name && methods.includes(name))){
+    showToast('⚠️ Payment method already exists'); return;
+  }
+  if(origName && origName!==name){
+    const idx=methods.indexOf(origName);
+    if(idx>-1) methods[idx]=name;
+    // Update existing expenses using the old name
+    const exps=loadExpenses().map(e=>e.pay===origName?{...e,pay:name}:e);
+    saveExpenses(exps);
+  } else if(!origName){
+    methods.push(name);
+  }
+  savePaymentMethods(methods);
+  document.getElementById('payMethodModal').classList.remove('open');
+  rebuildPayMethodDropdowns();
+  renderPayMethodMgmt();
+  renderLog();
+  showToast('✅ Payment method saved');
+}
+function deletePayMethod(name){
+  const methods=loadPaymentMethods();
+  if(methods.length<=1){ showToast('⚠️ Cannot delete the last payment method'); return; }
+  if(!confirm(`Delete payment method "${name}"?`)) return;
+  savePaymentMethods(methods.filter(m=>m!==name));
+  rebuildPayMethodDropdowns();
+  renderPayMethodMgmt();
+  showToast('✅ Payment method deleted');
 }
 
 // TOAST
