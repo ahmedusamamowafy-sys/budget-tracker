@@ -90,6 +90,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Pl
 .expense-right{text-align:right;flex-shrink:0}
 .expense-amount{font-size:15px;font-weight:700;color:var(--red);font-family:'IBM Plex Mono',monospace}
 .expense-pay{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.expense-added-meta{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px;opacity:0.65;white-space:nowrap}
 .item-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .edit-btn{background:none;border:none;color:var(--blue);font-size:15px;cursor:pointer;padding:2px 4px;line-height:1}
 .delete-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 4px;line-height:1}
@@ -166,8 +167,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Pl
 .sb-th-total{background:rgba(200,241,53,0.06);color:var(--accent);padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid var(--border2);border-left:2px solid rgba(200,241,53,0.3);white-space:nowrap}
 .sb-td-name{background:var(--card);color:var(--text);padding:10px 14px;white-space:nowrap;font-size:12px;font-weight:500;border-bottom:1px solid var(--border);position:sticky;left:0;z-index:1;border-right:1px solid var(--border2)}
 .sb-td-name-main{font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.3px}
-.sb-td-plan{background:var(--card);padding:9px 8px;text-align:right;color:var(--muted);border-bottom:1px solid var(--border);border-left:1px solid var(--border2);cursor:pointer;transition:background 0.15s;min-width:68px;white-space:nowrap;font-size:12px}
-.sb-td-plan:hover{background:rgba(74,222,128,0.06)}
+.sb-td-plan{background:var(--card);padding:9px 8px;text-align:right;color:var(--muted);border-bottom:1px solid var(--border);border-left:1px solid var(--border2);min-width:68px;white-space:nowrap;font-size:12px}
 .sb-td-plan.has-val{color:var(--green)}
 .sb-td-spent{background:var(--card);padding:9px 8px;text-align:right;border-bottom:1px solid var(--border);min-width:68px;white-space:nowrap;color:var(--muted);font-size:12px}
 .sb-neg{color:var(--red)}
@@ -361,7 +361,6 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       </div>
     </div>
     <div class="eye-menu-backdrop" id="eyeBackdrop" onclick="closeEyeMenu()"></div>
-    <button class="arrange-btn" onclick="openArrangeModal()" title="Arrange tabs">⠿ Arrange</button>
   </div>
 </div>
 <div class="nav">
@@ -785,10 +784,50 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 <div class="page" id="page-adminpref">
 <div class="admin-wrap">
   <div class="admin-section-title">⚙️ Admin Preferences</div>
+
+  <div class="admin-section-title" style="margin-top:4px">🗂️ Data Controls</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Reorder or hide tabs across the app.</div>
+  <button class="arrange-btn" onclick="openArrangeModal()" style="margin-bottom:24px">⠿ Arrange Tabs</button>
+
+  <div class="admin-section-title">👤 User Management</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Add, edit, or remove user accounts.</div>
+  <div id="adminUserMgmt"></div>
+  <button class="submit-btn" onclick="openUserModal()" style="margin-top:8px;margin-bottom:24px">➕ Add User</button>
+
+  <div class="admin-section-title">🔐 Tab Permissions</div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:16px;font-family:'IBM Plex Mono',monospace">Control what each user can view and edit. Changes apply immediately on next login.</div>
   <div id="adminUserCards"></div>
   <button class="submit-btn" onclick="saveAdminPrefs()" style="margin-top:8px">💾 Save Changes</button>
 </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal" onclick="closeUserModal(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="userModalTitle">➕ New User</span>
+      <button class="modal-close" onclick="document.getElementById('userModal').classList.remove('open')">✕</button>
+    </div>
+    <input type="hidden" id="editUserOrigName">
+    <div class="form-row">
+      <label class="form-label">Username</label>
+      <input class="form-input" id="userModalName" type="text" placeholder="e.g. Sara">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="userModalPass" type="text" placeholder="Password">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Role</label>
+      <div class="select-wrap">
+        <select class="form-select" id="userModalRole">
+          <option value="viewer">Viewer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="saveUserModal()">💾 Save User</button>
+  </div>
 </div>
 
 </div><!-- end appWrap -->
@@ -939,10 +978,23 @@ function saveExpenses(a){localStorage.setItem(STORAGE_KEY,JSON.stringify(a));}
 function getCurrentMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
 function formatMonth(ym){const[y,m]=ym.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y;}
 function fmt(n){return Math.round(n).toLocaleString('en-SA');}
+function fmtDateTime(iso){if(!iso)return'';const d=new Date(iso);if(isNaN(d.getTime()))return'';const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const hh=String(d.getHours()).padStart(2,'0');const mm=String(d.getMinutes()).padStart(2,'0');return`${d.getDate()} ${months[d.getMonth()]}, ${hh}:${mm}`;}
 function getMonths(){const m=[...new Set(loadExpenses().map(e=>e.month))].sort().reverse();if(!m.includes(getCurrentMonth()))m.unshift(getCurrentMonth());return m;}
 
 // LOGIN
-const USERS={'Ahmed':{pass:'99',role:'admin'},'Yara':{pass:'00',role:'viewer'}};
+const DEFAULT_USERS={'Ahmed':{pass:'99',role:'admin'},'Yara':{pass:'00',role:'viewer'}};
+const USERS_KEY='ksa_users';
+function loadUsers(){
+  try{
+    const u=JSON.parse(localStorage.getItem(USERS_KEY));
+    if(u&&Object.keys(u).length) return u;
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_USERS));
+}
+function saveUsers(u){
+  localStorage.setItem(USERS_KEY,JSON.stringify(u));
+  gsPush('saveKV',{key:'users',value:u});
+}
 const PERMS_KEY='ksa_user_perms';
 let currentUser=null;
 
@@ -963,7 +1015,7 @@ function savePerms(p){
 function getUserPerms(username){
   const stored=loadPerms();
   if(stored[username]) return stored[username];
-  const role=USERS[username]?.role||'viewer';
+  const role=loadUsers()[username]?.role||'viewer';
   return DEFAULT_PERMS[role]||DEFAULT_PERMS.viewer;
 }
 
@@ -983,7 +1035,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 function doLogin(){
   const user=document.getElementById('loginUser').value.trim();
   const pass=document.getElementById('loginPass').value;
-  const found=USERS[user];
+  const found=loadUsers()[user];
   if(found&&found.pass===pass){
     sessionStorage.setItem('ksa_logged_in','1');
     sessionStorage.setItem('ksa_user',user);
@@ -1027,6 +1079,7 @@ function showApp(){
       if(res.settings)  { localStorage.setItem(SETTINGS_KEY,JSON.stringify(res.settings)); }
       if(res.budget_plans){ localStorage.setItem(BUDGET_PLANS_KEY,JSON.stringify(res.budget_plans)); }
       if(res.perms)     { localStorage.setItem(PERMS_KEY,JSON.stringify(res.perms)); }
+      if(res.users)     { localStorage.setItem(USERS_KEY,JSON.stringify(res.users)); }
       if(res.savings_boxes){ localStorage.setItem(BOXES_KEY,JSON.stringify(res.savings_boxes)); }
       if(res.saving_box_plans){ localStorage.setItem(SB_PLANS_KEY,JSON.stringify(res.saving_box_plans)); }
       if(res.spendable_plans){ localStorage.setItem(SP_PLANS_KEY,JSON.stringify(res.spendable_plans)); }
@@ -1071,7 +1124,7 @@ function switchTab(tab,el){
   if(tab==='import')renderImportPreview();
   if(tab==='charts'){populateChartFilters();renderCharts();}
   if(tab==='budget')renderBudgetTab();
-  if(tab==='adminpref')renderAdminPrefs();
+  if(tab==='adminpref'){renderAdminPrefs();renderUserMgmt();}
   if(tab==='boxes')renderBoxes();
   if(tab==='savingboxes')renderSavingBoxes();
   if(tab==='spendable')renderSpendable();
@@ -1195,7 +1248,7 @@ function addExpense(){
   if(!date){showToast('⚠️ Pick a date');return;}
   const[sub,main,type]=catVal.split('|');
   const expenses=loadExpenses();
-  const newExp={id:Date.now(),main,sub,type,pay,date,desc,amount,month:date.substring(0,7),addedBy:currentUser?.name||'Unknown'};
+  const newExp={id:Date.now(),main,sub,type,pay,date,desc,amount,month:date.substring(0,7),addedBy:currentUser?.name||'Unknown',createdAt:new Date().toISOString()};
   expenses.unshift(newExp);
   saveExpenses(expenses);
   gsPush('addExpense', newExp);
@@ -1316,8 +1369,8 @@ function renderLog(){
       const icon=CAT_ICONS[e.main]||CAT_ICONS.default;
       const iconBg=e.type==='Saving Box'?'rgba(167,139,250,0.15)':'rgba(74,222,128,0.12)';
       const canEditLog=canEdit('log');
-      const userBadge=e.addedBy?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:${e.addedBy==='Ahmed'?'rgba(200,241,53,0.15)':'rgba(96,165,250,0.12)'};color:${e.addedBy==='Ahmed'?'var(--accent)':'var(--blue)'};border:1px solid ${e.addedBy==='Ahmed'?'rgba(200,241,53,0.3)':'rgba(96,165,250,0.3)'};font-family:'IBM Plex Mono',monospace;margin-left:4px">${e.addedBy}</span>`:'';
-      return`<div class="expense-item" id="exp-${e.id}"><div class="expense-icon" style="background:${iconBg}">${icon}</div><div class="expense-info"><div class="expense-sub">${e.sub}${userBadge}</div><div class="expense-meta">${e.date}${e.desc?' · '+e.desc:''}</div></div><div class="expense-right"><div class="expense-amount hide-number">${fmt(e.amount)}</div><div class="expense-pay">${e.pay}</div></div>${canEditLog?'<div class="item-actions"><button class="edit-btn" onclick="openEditModal('+e.id+')">✏️</button><button class="delete-btn" onclick="deleteExpense('+e.id+')">✕</button></div>':''}</div>`;
+      const addedMeta=(e.createdAt||e.addedBy)?`<div class="expense-added-meta">${e.createdAt?fmtDateTime(e.createdAt):''}${e.createdAt&&e.addedBy?' · ':''}${e.addedBy||''}</div>`:'';
+      return`<div class="expense-item" id="exp-${e.id}"><div class="expense-icon" style="background:${iconBg}">${icon}</div><div class="expense-info"><div class="expense-sub">${e.sub}</div><div class="expense-meta">${e.date}${e.desc?' · '+e.desc:''}</div></div><div class="expense-right"><div class="expense-amount hide-number">${fmt(e.amount)}</div><div class="expense-pay">${e.pay}</div>${addedMeta}</div>${canEditLog?'<div class="item-actions"><button class="edit-btn" onclick="openEditModal('+e.id+')">✏️</button><button class="delete-btn" onclick="deleteExpense('+e.id+')">✕</button></div>':''}</div>`;
     }).join('');
   }
   const spendables=expenses.filter(e=>e.type==='Spendable');
@@ -2158,19 +2211,20 @@ function runImport(){
   if(!valid.length){showToast('⚠️ No valid rows found');return;}
   const expenses=loadExpenses();
   // Add valid rows with unique IDs (spread timestamp to avoid collisions)
+  const importedAt=new Date().toISOString();
   valid.forEach((r,i)=>{
     expenses.unshift({
       id:Date.now()+i,
       main:r.main, sub:r.sub, type:r.type,
       pay:r.pay, date:r.date, desc:r.desc,
       amount:r.amount, month:r.month,
-      addedBy:r.addedBy
+      addedBy:r.addedBy, createdAt:importedAt
     });
   });
   saveExpenses(expenses);
   if(isGsReady()) valid.forEach(r=>gsPush('addExpense',{
     id:Date.now()+Math.random(),main:r.main,sub:r.sub,type:r.type,
-    pay:r.pay,date:r.date,desc:r.desc,amount:r.amount,month:r.month,addedBy:r.addedBy
+    pay:r.pay,date:r.date,desc:r.desc,amount:r.amount,month:r.month,addedBy:r.addedBy,createdAt:importedAt
   }));
   document.getElementById('importPaste').value='';
   document.getElementById('importPreview').innerHTML=`<div class="import-summary" style="background:rgba(74,222,128,0.1);color:var(--green)">✅ ${valid.length} expenses imported successfully!</div>`;
@@ -2195,12 +2249,89 @@ const ALL_TABS=[
   {id:'import',label:'⬆️ Import',      icon:'⬆️'},
 ];
 
+// ── USER MANAGEMENT ───────────────────────────────────────────
+function renderUserMgmt(){
+  const container=document.getElementById('adminUserMgmt');
+  const users=loadUsers();
+  const names=Object.keys(users);
+  let html='';
+  names.forEach(name=>{
+    const u=users[name];
+    html+=`<div class="admin-user-card">
+      <div class="admin-user-hdr">
+        <div class="admin-user-name">${name}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="admin-user-role ${u.role}">${u.role}</span>
+          <button class="edit-btn" onclick="openUserModal('${name}')" title="Edit user">✏️</button>
+          ${names.length>1?`<button class="delete-btn" onclick="deleteUser('${name}')" title="Delete user">✕</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML=html;
+}
+function openUserModal(name){
+  document.getElementById('editUserOrigName').value=name||'';
+  document.getElementById('userModalTitle').textContent=name?'✏️ Edit User':'➕ New User';
+  const users=loadUsers();
+  if(name&&users[name]){
+    document.getElementById('userModalName').value=name;
+    document.getElementById('userModalPass').value=users[name].pass;
+    document.getElementById('userModalRole').value=users[name].role;
+  } else {
+    document.getElementById('userModalName').value='';
+    document.getElementById('userModalPass').value='';
+    document.getElementById('userModalRole').value='viewer';
+  }
+  document.getElementById('userModal').classList.add('open');
+}
+function closeUserModal(e){
+  if(e && e.target.id!=='userModal') return;
+  document.getElementById('userModal').classList.remove('open');
+}
+function saveUserModal(){
+  const origName=document.getElementById('editUserOrigName').value;
+  const name=document.getElementById('userModalName').value.trim();
+  const pass=document.getElementById('userModalPass').value;
+  const role=document.getElementById('userModalRole').value;
+  if(!name||!pass){ showToast('⚠️ Username and password required'); return; }
+  const users=loadUsers();
+  if((!origName && users[name]) || (origName && origName!==name && users[name])){
+    showToast('⚠️ Username already exists'); return;
+  }
+  if(origName && origName!==name){
+    delete users[origName];
+    // Migrate stored permissions to new username
+    const perms=loadPerms();
+    if(perms[origName]){ perms[name]=perms[origName]; delete perms[origName]; savePerms(perms); }
+  }
+  users[name]={pass,role};
+  saveUsers(users);
+  document.getElementById('userModal').classList.remove('open');
+  renderUserMgmt();
+  renderAdminPrefs();
+  showToast('✅ User saved');
+}
+function deleteUser(name){
+  const users=loadUsers();
+  if(Object.keys(users).length<=1){ showToast('⚠️ Cannot delete the last user'); return; }
+  if(name===currentUser?.name){ showToast('⚠️ Cannot delete the user you are logged in as'); return; }
+  if(!confirm(`Delete user "${name}"?`)) return;
+  delete users[name];
+  saveUsers(users);
+  const perms=loadPerms();
+  if(perms[name]){ delete perms[name]; savePerms(perms); }
+  renderUserMgmt();
+  renderAdminPrefs();
+  showToast('✅ User deleted');
+}
+
 function renderAdminPrefs(){
   const container=document.getElementById('adminUserCards');
   const stored=loadPerms();
   let html='';
   // Only show non-admin users
-  Object.entries(USERS).filter(([name,u])=>u.role!=='admin').forEach(([name,u])=>{
+  Object.entries(loadUsers()).filter(([name,u])=>u.role!=='admin').forEach(([name,u])=>{
     const perms=stored[name]||DEFAULT_PERMS[u.role]||DEFAULT_PERMS.viewer;
     html+=`<div class="admin-user-card">
       <div class="admin-user-hdr">
@@ -2237,7 +2368,7 @@ function onPermChange(user, tab, action, checked){
   if(!pendingPerms[user]){
     // Clone current stored perms for this user
     const stored=loadPerms();
-    pendingPerms[user]=JSON.parse(JSON.stringify(stored[user]||DEFAULT_PERMS[USERS[user]?.role]||DEFAULT_PERMS.viewer));
+    pendingPerms[user]=JSON.parse(JSON.stringify(stored[user]||DEFAULT_PERMS[loadUsers()[user]?.role]||DEFAULT_PERMS.viewer));
   }
   if(!pendingPerms[user][tab]) pendingPerms[user][tab]={view:true,edit:true};
   pendingPerms[user][tab][action]=checked;
@@ -2317,14 +2448,15 @@ function renderSavingBoxes(){
   });
 
   const months=getSBMonths();
-  const plans=loadSBPlans();
+  const budgetByMonth={};
+  months.forEach(m=>{budgetByMonth[m]=getBudgetForMonth(m);});
   const sbExp=loadExpenses().filter(e=>e.type==='Saving Box');
 
   // Summary totals (all months, all subs)
   let grandPlannedAll=0, grandSpentAll=0;
   allSBCats.forEach(c=>{
     months.forEach(m=>{
-      grandPlannedAll+=(plans[c.sub]?.[m]!=null?plans[c.sub][m]:DEFAULT_BUDGETS[c.sub]||0);
+      grandPlannedAll+=(budgetByMonth[m][c.sub]!=null?budgetByMonth[m][c.sub]:DEFAULT_BUDGETS[c.sub]||0);
       grandSpentAll+=sbExp.filter(e=>e.sub===c.sub&&e.month===m).reduce((s,e)=>s+e.amount,0);
     });
   });
@@ -2370,12 +2502,11 @@ function renderSavingBoxes(){
       let rowPlanned=0,rowSpent=0;
       months.forEach((m,i)=>{
         const defaultVal=DEFAULT_BUDGETS[sub]||0;
-        const planned=plans[sub]?.[m]!=null?plans[sub][m]:defaultVal;
+        const planned=budgetByMonth[m][sub]!=null?budgetByMonth[m][sub]:defaultVal;
         const spent=sbExp.filter(e=>e.sub===sub&&e.month===m).reduce((s,e)=>s+e.amount,0);
         rowPlanned+=planned; rowSpent+=spent;
         colPlanned[i]+=planned; colSpent[i]+=spent;
-        const subSafe=sub.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        html+=`<td class="sb-td-plan hide-number${planned>0?' has-val':''}" onclick="editSBPlan('${subSafe}','${m}',this)">${planned>0?fmt(planned):'-'}</td>`;
+        html+=`<td class="sb-td-plan hide-number${planned>0?' has-val':''}">${planned>0?fmt(planned):'-'}</td>`;
         html+=`<td class="sb-td-spent hide-number">${spent>0?`<span class="sb-neg">-${fmt(spent)}</span>`:'-'}</td>`;
       });
       const rowNet=rowPlanned-rowSpent;
@@ -2402,28 +2533,6 @@ function renderSavingBoxes(){
   applyEyeState();
 }
 
-function editSBPlan(sub,month,td){
-  if(td.querySelector('input')) return;
-  const plans=loadSBPlans();
-  const defaultVal=DEFAULT_BUDGETS[sub]||0;
-  const current=plans[sub]?.[month]!=null?plans[sub][month]:defaultVal;
-  td.innerHTML=`<input type="number" inputmode="numeric" value="${current}" style="width:64px;background:var(--bg);border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-size:12px;padding:3px 5px;font-family:'IBM Plex Mono',monospace;outline:none;text-align:right">`;
-  const inp=td.querySelector('input');
-  inp.focus(); inp.select();
-  const save=()=>{
-    const val=parseFloat(inp.value);
-    if(!plans[sub]) plans[sub]={};
-    plans[sub][month]=isNaN(val)?defaultVal:val;
-    saveSBPlans(plans);
-    renderSavingBoxes();
-  };
-  inp.addEventListener('blur',save);
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){inp.removeEventListener('blur',save);save();}
-    if(e.key==='Escape') renderSavingBoxes();
-  });
-}
-
 // ── SPENDABLE TABLE ──────────────────────────────────────────
 function renderSpendable(){
   const allSPCats=ALL_CATEGORIES.filter(c=>c.type==='Spendable');
@@ -2443,14 +2552,15 @@ function renderSpendable(){
   });
 
   const months=getSPMonths();
-  const plans=loadSPPlans();
+  const budgetByMonth={};
+  months.forEach(m=>{budgetByMonth[m]=getBudgetForMonth(m);});
   const spExp=loadExpenses().filter(e=>e.type==='Spendable');
 
   // Summary totals (all months, all subs)
   let grandPlannedAll=0, grandSpentAll=0;
   allSPCats.forEach(c=>{
     months.forEach(m=>{
-      grandPlannedAll+=(plans[c.sub]?.[m]!=null?plans[c.sub][m]:DEFAULT_BUDGETS[c.sub]||0);
+      grandPlannedAll+=(budgetByMonth[m][c.sub]!=null?budgetByMonth[m][c.sub]:DEFAULT_BUDGETS[c.sub]||0);
       grandSpentAll+=spExp.filter(e=>e.sub===c.sub&&e.month===m).reduce((s,e)=>s+e.amount,0);
     });
   });
@@ -2495,12 +2605,11 @@ function renderSpendable(){
       let rowPlanned=0,rowSpent=0;
       months.forEach((m,i)=>{
         const defaultVal=DEFAULT_BUDGETS[sub]||0;
-        const planned=plans[sub]?.[m]!=null?plans[sub][m]:defaultVal;
+        const planned=budgetByMonth[m][sub]!=null?budgetByMonth[m][sub]:defaultVal;
         const spent=spExp.filter(e=>e.sub===sub&&e.month===m).reduce((s,e)=>s+e.amount,0);
         rowPlanned+=planned; rowSpent+=spent;
         colPlanned[i]+=planned; colSpent[i]+=spent;
-        const subSafe=sub.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        html+=`<td class="sb-td-plan hide-number${planned>0?' has-val':''}" onclick="editSPPlan('${subSafe}','${m}',this)">${planned>0?fmt(planned):'-'}</td>`;
+        html+=`<td class="sb-td-plan hide-number${planned>0?' has-val':''}">${planned>0?fmt(planned):'-'}</td>`;
         html+=`<td class="sb-td-spent hide-number">${spent>0?`<span class="sb-neg">-${fmt(spent)}</span>`:'-'}</td>`;
       });
       const rowNet=rowPlanned-rowSpent;
@@ -2525,28 +2634,6 @@ function renderSpendable(){
 
   document.getElementById('spTableWrap').innerHTML=html;
   applyEyeState();
-}
-
-function editSPPlan(sub,month,td){
-  if(td.querySelector('input')) return;
-  const plans=loadSPPlans();
-  const defaultVal=DEFAULT_BUDGETS[sub]||0;
-  const current=plans[sub]?.[month]!=null?plans[sub][month]:defaultVal;
-  td.innerHTML=`<input type="number" inputmode="numeric" value="${current}" style="width:64px;background:var(--bg);border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-size:12px;padding:3px 5px;font-family:'IBM Plex Mono',monospace;outline:none;text-align:right">`;
-  const inp=td.querySelector('input');
-  inp.focus(); inp.select();
-  const save=()=>{
-    const val=parseFloat(inp.value);
-    if(!plans[sub]) plans[sub]={};
-    plans[sub][month]=isNaN(val)?defaultVal:val;
-    saveSPPlans(plans);
-    renderSpendable();
-  };
-  inp.addEventListener('blur',save);
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){inp.removeEventListener('blur',save);save();}
-    if(e.key==='Escape') renderSpendable();
-  });
 }
 
 // ── SAVINGS BOXES ─────────────────────────────────────────────
