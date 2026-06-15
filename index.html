@@ -257,6 +257,12 @@ body{
 .ef-bar-seg.red{background:var(--red)}
 .ef-bar-seg.yellow{background:#FBBF24}
 .ef-bar-seg.green{background:var(--green)}
+.sf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.sf-stat{background:var(--surface);border-radius:var(--r2);padding:8px 10px}
+.sf-stat-label{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+.sf-stat-val{font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.uc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)}
+.uc-row:last-child{border-bottom:none}
 .neg{color:var(--red)!important}.pos{color:var(--green)!important}
 /* CHARTS */
 .chart-wrap{padding:16px}
@@ -785,6 +791,22 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   </div>
   <div id="dashMonthly">
     <div class="dash-month-tabs" id="dashMonthTabs"></div>
+    <div id="salaryForecastSection">
+      <div class="section-title">Salary Countdown & Cash Flow Forecast</div>
+      <div class="ef-card" id="salaryForecastCard">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span class="kpi-label" style="margin-bottom:0">Days Until Salary</span>
+          <span class="kpi-value salary-kpi" id="sfDays" style="font-size:18px"></span>
+        </div>
+        <div class="sf-grid">
+          <div class="sf-stat"><div class="sf-stat-label">Remaining Spendable</div><div class="sf-stat-val salary-kpi" id="sfRemaining"></div></div>
+          <div class="sf-stat"><div class="sf-stat-label">Upcoming Bills</div><div class="sf-stat-val salary-kpi" id="sfUpcoming" style="color:var(--red)"></div></div>
+          <div class="sf-stat"><div class="sf-stat-label">Projected Balance</div><div class="sf-stat-val salary-kpi" id="sfProjected"></div></div>
+          <div class="sf-stat"><div class="sf-stat-label">Safe Daily Spend</div><div class="sf-stat-val salary-kpi" id="sfDaily" style="color:var(--green)"></div></div>
+        </div>
+        <div id="sfStatus" style="font-size:12px;line-height:1.5;font-family:'IBM Plex Sans Arabic',sans-serif;padding:8px 10px;border-radius:var(--r2)"></div>
+      </div>
+    </div>
     <div class="kpi-grid">
       <div class="kpi-card full">
         <div class="kpi-label">Gross Salary</div>
@@ -811,6 +833,10 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       </div>
       <div class="ef-bar-wrap" id="efBarWrap"></div>
       <div id="efDetail" style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:6px"></div>
+    </div>
+    <div id="upcomingCommitmentsSection" style="display:none">
+      <div class="section-title">Upcoming Commitments</div>
+      <div class="ef-card" id="upcomingCommitmentsCard"></div>
     </div>
     <div class="section-title">Spendable Categories Only</div>
     <div id="categoryBars"></div>
@@ -919,7 +945,65 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
   </div>
   <div id="budgetContent"></div>
+
+  <div class="section-title" style="margin-top:20px">🔁 Recurring Expenses</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">Fixed bills & subscriptions. Enable "Auto-add" to log them automatically on their due date.</div>
+  <div id="recurringList"></div>
+  <div class="add-box-card" onclick="openRecurringModal()" id="addRecurringCard">
+    <div style="font-size:28px">🔁</div>
+    <div class="add-box-card-text">+ Add Recurring Expense</div>
+  </div>
 </div>
+</div>
+
+<!-- RECURRING EXPENSE MODAL -->
+<div class="modal-overlay" id="recurringModal" onclick="closeRecurringModal(event)">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title" id="recurringModalTitle">🔁 New Recurring Expense <button class="modal-close" onclick="closeRecurringModal()">✕</button></div>
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="recurName" type="text" placeholder="e.g. Netflix, Rent, Gym Membership">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Category</label>
+      <div class="select-wrap"><select class="form-select" id="recurCatSelect"></select></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Payment Method</label>
+      <div class="select-wrap"><select class="form-select" id="recurPay"></select></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Amount (SAR)</label>
+      <input class="form-input" id="recurAmount" type="number" inputmode="decimal" placeholder="0">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Frequency</label>
+      <div class="select-wrap">
+        <select class="form-select" id="recurFrequency">
+          <option value="monthly">Monthly</option>
+          <option value="weekly">Weekly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="annual">Annual</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Next Due Date</label>
+      <input class="form-input" id="recurNextDue" type="date">
+    </div>
+    <div class="form-row" style="display:flex;align-items:center;gap:10px">
+      <label class="form-label" style="margin:0;flex:1">Active</label>
+      <input type="checkbox" class="admin-cb" id="recurActive" checked>
+    </div>
+    <div class="form-row" style="display:flex;align-items:center;gap:10px">
+      <label class="form-label" style="margin:0;flex:1">Auto-add as expense when due</label>
+      <input type="checkbox" class="admin-cb" id="recurAutoAdd">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRecurringModal()">Cancel</button>
+      <button class="btn-save" onclick="saveRecurringItem()">Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- IMPORT -->
@@ -973,6 +1057,14 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 <div class="page" id="page-adminpref">
 <div class="admin-wrap">
   <div class="admin-section-title">⚙️ Admin Preferences</div>
+
+  <div class="admin-section-title" style="margin-top:4px">💰 Salary Settings</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Used for the Salary Countdown & Cash Flow Forecast on the Dashboard.</div>
+  <div class="form-row" style="max-width:240px">
+    <label class="form-label">Salary Day of Month</label>
+    <input class="form-input" id="salaryDayInput" type="number" inputmode="numeric" min="1" max="31" placeholder="27">
+  </div>
+  <button class="submit-btn" onclick="saveSalaryDay()" style="margin-top:4px;margin-bottom:24px">💾 Save Salary Day</button>
 
   <div class="admin-section-title" style="margin-top:4px">🗂️ Data Controls</div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Reorder or hide tabs across the app.</div>
@@ -1331,7 +1423,7 @@ function buildPayMethodOptionsHTML(){
 }
 function rebuildPayMethodDropdowns(){
   const html=buildPayMethodOptionsHTML();
-  ['payMethod','editPay'].forEach(id=>{
+  ['payMethod','editPay','recurPay'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel) return;
     const v=sel.value;
@@ -1523,6 +1615,25 @@ function getSalaryDay(){
   const d=loadSettings().salaryDay;
   return (Number(d)>=1&&Number(d)<=31)?Number(d):27;
 }
+// Next salary date (today if today is salary day, else upcoming occurrence)
+function getNextSalaryDate(){
+  const day=getSalaryDay();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const y=today.getFullYear(), m=today.getMonth();
+  const dim=new Date(y,m+1,0).getDate();
+  let candidate=new Date(y,m,Math.min(day,dim));
+  if(candidate<today){
+    const ny=m===11?y+1:y, nm=(m+1)%12;
+    const dim2=new Date(ny,nm+1,0).getDate();
+    candidate=new Date(ny,nm,Math.min(day,dim2));
+  }
+  return candidate;
+}
+// Sum of active recurring items due between today (inclusive) and a given YYYY-MM-DD date (inclusive)
+function getUpcomingRecurringTotal(untilDateStr){
+  const today=new Date().toLocaleDateString('sv').substring(0,10);
+  return loadRecurring().filter(r=>r.active!==false&&r.nextDueDate&&r.nextDueDate>=today&&r.nextDueDate<=untilDateStr).reduce((s,r)=>s+(Number(r.amount)||0),0);
+}
 
 // ── RECURRING EXPENSES ────────────────────────────────────────
 const RECURRING_KEY='ksa_recurring_expenses';
@@ -1530,6 +1641,154 @@ function loadRecurring(){try{const v=JSON.parse(localStorage.getItem(RECURRING_K
 function saveRecurring(r){
   localStorage.setItem(RECURRING_KEY,JSON.stringify(r));
   gsPush('saveKV',{key:'recurring_expenses',value:r});
+}
+const FREQ_LABELS={monthly:'Monthly',weekly:'Weekly',quarterly:'Quarterly',annual:'Annual'};
+let editingRecurringId=null;
+function fmtRecurDate(dateStr){
+  if(!dateStr) return '—';
+  const d=new Date(dateStr+'T00:00:00');
+  if(isNaN(d.getTime())) return '—';
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return`${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+// Advance a YYYY-MM-DD date string by one cycle of the given frequency
+function advanceDate(dateStr,frequency){
+  const d=new Date(dateStr+'T00:00:00');
+  if(isNaN(d.getTime())) return dateStr;
+  switch(frequency){
+    case 'weekly': d.setDate(d.getDate()+7); break;
+    case 'quarterly': d.setMonth(d.getMonth()+3); break;
+    case 'annual': d.setFullYear(d.getFullYear()+1); break;
+    default: d.setMonth(d.getMonth()+1); break; // monthly
+  }
+  return d.toLocaleDateString('sv').substring(0,10);
+}
+function renderRecurring(){
+  const list=document.getElementById('recurringList');
+  if(!list) return;
+  const isViewer=!canEdit('budget');
+  const items=loadRecurring();
+  if(!items.length){
+    list.innerHTML=`<div style="text-align:center;padding:20px 10px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace">No recurring expenses yet. Add bills, subscriptions, or memberships to track them here.</div>`;
+    return;
+  }
+  const sorted=[...items].sort((a,b)=>(a.nextDueDate||'9999').localeCompare(b.nextDueDate||'9999'));
+  list.innerHTML=sorted.map(r=>{
+    const icon=CAT_ICONS[r.main]||'💸';
+    const color=r.active===false?'var(--muted)':'var(--accent)';
+    const statusBits=[];
+    statusBits.push(r.active===false?'⏸ Paused':'● Active');
+    statusBits.push(r.autoAdd?'🔁 Auto-add':'🔔 Reminder only');
+    return`<div class="box-card" style="--box-color:${color}">
+      <div class="box-card-header">
+        <div class="box-icon">${icon}</div>
+        <div class="box-info">
+          <div class="box-name">${r.name||r.sub||'Recurring Expense'}</div>
+          <div class="box-notes">${r.sub||''}${r.pay?' · '+r.pay:''} · ${FREQ_LABELS[r.frequency]||'Monthly'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="box-balance" style="font-size:17px;margin-bottom:0">${fmt(r.amount||0)} SAR</div>
+          <div class="box-notes">Due ${fmtRecurDate(r.nextDueDate)}</div>
+        </div>
+      </div>
+      <div class="box-notes" style="margin-bottom:8px">${statusBits.join(' · ')}</div>
+      ${isViewer?'':`<div class="box-btn-row">
+        <button class="box-btn dep" onclick="openRecurringModal(${r.id})">✏️ Edit</button>
+        <button class="box-btn del" onclick="deleteRecurringItem(${r.id})">🗑️</button>
+      </div>`}
+    </div>`;
+  }).join('');
+}
+function openRecurringModal(id){
+  editingRecurringId=id||null;
+  rebuildDropdowns();
+  rebuildPayMethodDropdowns();
+  const title=document.getElementById('recurringModalTitle');
+  const item=id?loadRecurring().find(r=>r.id===id):null;
+  if(item){
+    title.innerHTML=`✏️ Edit Recurring Expense <button class="modal-close" onclick="closeRecurringModal()">✕</button>`;
+    document.getElementById('recurName').value=item.name||'';
+    document.getElementById('recurCatSelect').value=item.sub&&item.main&&item.type?`${item.sub}|${item.main}|${item.type}`:'';
+    document.getElementById('recurPay').value=item.pay||'';
+    document.getElementById('recurAmount').value=item.amount||'';
+    document.getElementById('recurFrequency').value=item.frequency||'monthly';
+    document.getElementById('recurNextDue').value=item.nextDueDate||'';
+    document.getElementById('recurActive').checked=item.active!==false;
+    document.getElementById('recurAutoAdd').checked=!!item.autoAdd;
+  } else {
+    title.innerHTML=`🔁 New Recurring Expense <button class="modal-close" onclick="closeRecurringModal()">✕</button>`;
+    document.getElementById('recurName').value='';
+    document.getElementById('recurCatSelect').value='';
+    document.getElementById('recurPay').value='';
+    document.getElementById('recurAmount').value='';
+    document.getElementById('recurFrequency').value='monthly';
+    document.getElementById('recurNextDue').value=new Date().toLocaleDateString('sv').substring(0,10);
+    document.getElementById('recurActive').checked=true;
+    document.getElementById('recurAutoAdd').checked=false;
+  }
+  document.getElementById('recurringModal').classList.add('open');
+}
+function closeRecurringModal(event){
+  if(event&&event.target!==event.currentTarget) return;
+  document.getElementById('recurringModal').classList.remove('open');
+  editingRecurringId=null;
+}
+function saveRecurringItem(){
+  const name=document.getElementById('recurName').value.trim();
+  const catVal=document.getElementById('recurCatSelect').value;
+  const pay=document.getElementById('recurPay').value;
+  const amount=parseFloat(document.getElementById('recurAmount').value);
+  const frequency=document.getElementById('recurFrequency').value;
+  const nextDueDate=document.getElementById('recurNextDue').value;
+  const active=document.getElementById('recurActive').checked;
+  const autoAdd=document.getElementById('recurAutoAdd').checked;
+  if(!name){showToast('⚠️ Enter a name');return;}
+  if(!catVal){showToast('⚠️ Select a category');return;}
+  if(!amount||amount<=0){showToast('⚠️ Enter an amount');return;}
+  if(!nextDueDate){showToast('⚠️ Pick a next due date');return;}
+  const[sub,main,type]=catVal.split('|');
+  const items=loadRecurring();
+  if(editingRecurringId){
+    const idx=items.findIndex(r=>r.id===editingRecurringId);
+    if(idx>-1) items[idx]={...items[idx],name,main,sub,type,pay,amount,frequency,nextDueDate,active,autoAdd};
+  } else {
+    items.push({id:Date.now(),name,main,sub,type,pay,amount,frequency,nextDueDate,active,autoAdd,createdAt:new Date().toISOString()});
+  }
+  saveRecurring(items);
+  closeRecurringModal();
+  renderRecurring();
+  showToast('✅ Recurring expense saved');
+}
+function deleteRecurringItem(id){
+  const items=loadRecurring().filter(r=>r.id!==id);
+  saveRecurring(items);
+  renderRecurring();
+  showToast('🗑️ Recurring expense deleted');
+}
+// Auto-create expense entries for active, autoAdd recurring items whose nextDueDate has arrived.
+// Catches up multiple missed cycles (capped) and advances nextDueDate past today.
+function processRecurringAutoAdd(){
+  const items=loadRecurring();
+  if(!items.length) return;
+  const today=new Date().toLocaleDateString('sv').substring(0,10);
+  const expenses=loadExpenses();
+  let changed=false, addedCount=0;
+  items.forEach(r=>{
+    if(r.active===false||!r.autoAdd||!r.nextDueDate) return;
+    let guard=0;
+    while(r.nextDueDate<=today && guard<24){
+      const newExp={id:Date.now()+addedCount,main:r.main,sub:r.sub,type:r.type,pay:r.pay,date:r.nextDueDate,desc:`${r.name} (recurring)`,amount:r.amount,month:r.nextDueDate.substring(0,7),addedBy:currentUser?.name||'Unknown',createdAt:new Date().toISOString()};
+      expenses.unshift(newExp);
+      gsPush('addExpense',newExp);
+      r.nextDueDate=advanceDate(r.nextDueDate,r.frequency);
+      changed=true; addedCount++; guard++;
+    }
+  });
+  if(changed){
+    saveExpenses(expenses);
+    saveRecurring(items);
+    showToast(`🔁 Added ${addedCount} recurring expense${addedCount>1?'s':''}`);
+  }
 }
 
 // ── ANNUAL FINANCIAL PLANNER ──────────────────────────────────
@@ -1676,11 +1935,14 @@ function showApp(){
       if(res.recurring_expenses){ localStorage.setItem(RECURRING_KEY,JSON.stringify(res.recurring_expenses)); }
       if(res.annual_plan){ localStorage.setItem(ANNUAL_PLAN_KEY,JSON.stringify(res.annual_plan)); }
       if(res.quick_add_config && Array.isArray(res.quick_add_config) && res.quick_add_config.length>0){ localStorage.setItem(QUICK_ADD_KEY,JSON.stringify(res.quick_add_config)); }
+      processRecurringAutoAdd();
       setSyncStatus('idle');
       renderLog();renderDash();renderBudgetTab();
     }).catch(()=>setSyncStatus('error'));
   } else {
     setSyncStatus('offline');
+    processRecurringAutoAdd();
+    renderLog();renderDash();renderBudgetTab();
   }
 }
 function applyRoleRestrictions(){
@@ -2104,7 +2366,88 @@ function renderMonthlyDash(){
     return`<div class="progress-wrap"><div class="progress-label"><span class="progress-name">${CAT_ICONS[cat]||'💸'} ${cat}</span><span class="progress-nums salary-kpi">${fmt(total)} SAR${budget?' / '+fmt(budget):''}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${over?'var(--red)':'var(--accent)'}"></div></div></div>`;
   }).join('');
   renderEmergencyFund();
+  renderSalaryForecast();
+  renderUpcomingCommitments();
   applyEyeState();
+}
+
+// ── SALARY COUNTDOWN & CASH FLOW FORECAST (Feature 4) ─────────
+function renderSalaryForecast(){
+  const section=document.getElementById('salaryForecastSection');
+  if(!section) return;
+  // Forecast is relative to "today", so only show it for the current month
+  if(selectedDashMonth!==getCurrentMonth()){
+    section.style.display='none';
+    return;
+  }
+  section.style.display='block';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const nextSalary=getNextSalaryDate();
+  const daysUntil=Math.round((nextSalary-today)/86400000);
+  const SP=getSpendable(selectedDashMonth);
+  const expenses=loadExpenses().filter(e=>e.month===selectedDashMonth);
+  const spentSP=expenses.filter(e=>e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+  const remaining=SP-spentSP;
+  const untilStr=nextSalary.toLocaleDateString('sv').substring(0,10);
+  const upcoming=getUpcomingRecurringTotal(untilStr);
+  const projected=remaining-upcoming;
+  const safeDaily=projected>0?projected/Math.max(daysUntil,1):0;
+
+  document.getElementById('sfDays').textContent=daysUntil<=0?'Today! 🎉':(daysUntil+' day'+(daysUntil===1?'':'s'));
+  document.getElementById('sfRemaining').textContent=fmt(remaining)+' SAR';
+  document.getElementById('sfUpcoming').textContent=fmt(upcoming)+' SAR';
+  const sfProjected=document.getElementById('sfProjected');
+  sfProjected.textContent=fmt(projected)+' SAR';
+  sfProjected.style.color=projected>=0?'var(--accent)':'var(--red)';
+  document.getElementById('sfDaily').textContent=fmt(safeDaily)+' SAR';
+
+  const dayOfMonth=today.getDate();
+  const avgDaily=spentSP/Math.max(dayOfMonth,1);
+  const statusEl=document.getElementById('sfStatus');
+  if(projected<0){
+    statusEl.style.background='rgba(255,77,77,0.1)';
+    statusEl.style.color='var(--red)';
+    statusEl.innerHTML=`⚠️ <strong>Overspending</strong> — at this pace you'll be ${fmt(Math.abs(projected))} SAR over budget before salary day.`;
+  } else if(avgDaily===0||safeDaily>=avgDaily*1.15){
+    statusEl.style.background='rgba(74,222,128,0.1)';
+    statusEl.style.color='var(--green)';
+    statusEl.innerHTML=`✅ <strong>Excellent</strong> — you're on track with room to spare.`;
+  } else {
+    statusEl.style.background='rgba(251,191,36,0.1)';
+    statusEl.style.color='#FBBF24';
+    statusEl.innerHTML=`🟡 <strong>On track</strong> — spend carefully to stay within budget.`;
+  }
+}
+
+// ── UPCOMING COMMITMENTS (Feature 4 support) ──────────────────
+function renderUpcomingCommitments(){
+  const section=document.getElementById('upcomingCommitmentsSection');
+  const card=document.getElementById('upcomingCommitmentsCard');
+  if(!section||!card) return;
+  if(selectedDashMonth!==getCurrentMonth()){
+    section.style.display='none';
+    return;
+  }
+  const items=loadRecurring().filter(r=>r.active!==false&&r.nextDueDate);
+  if(!items.length){
+    section.style.display='none';
+    return;
+  }
+  section.style.display='block';
+  const sorted=[...items].sort((a,b)=>a.nextDueDate.localeCompare(b.nextDueDate)).slice(0,5);
+  card.innerHTML=sorted.map(r=>{
+    const icon=CAT_ICONS[r.main]||'💸';
+    return`<div class="uc-row">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div class="box-icon" style="width:34px;height:34px;font-size:16px">${icon}</div>
+        <div style="min-width:0">
+          <div class="box-name" style="font-size:13px">${r.name||r.sub}</div>
+          <div class="box-notes">Due ${fmtRecurDate(r.nextDueDate)}</div>
+        </div>
+      </div>
+      <div class="salary-kpi" style="font-family:'IBM Plex Mono',monospace;font-weight:700;flex-shrink:0">${fmt(r.amount||0)} SAR</div>
+    </div>`;
+  }).join('');
 }
 
 function renderEmergencyFund(){
@@ -2492,6 +2835,9 @@ function renderBudgetTab(){
 
   document.getElementById('budgetContent').innerHTML=html;
   document.getElementById('budgetSaveBtn').style.display=isViewer?'none':'block';
+  renderRecurring();
+  const addRecurCard=document.getElementById('addRecurringCard');
+  if(addRecurCard) addRecurCard.style.display=isViewer?'none':'block';
   applyEyeState();
 }
 
@@ -2699,8 +3045,10 @@ function rebuildDropdowns(){
   const html=buildDropdownHTML();
   const sel1=document.getElementById('subCatSelect');
   const sel2=document.getElementById('editCat');
+  const sel3=document.getElementById('recurCatSelect');
   if(sel1){ const v=sel1.value; sel1.innerHTML=html; if(v) sel1.value=v; }
   if(sel2){ const v=sel2.value; sel2.innerHTML=html.replace('<option value="">Select category...</option>',''); if(v) sel2.value=v; }
+  if(sel3){ const v=sel3.value; sel3.innerHTML=html; if(v) sel3.value=v; }
 }
 // Shared rename logic: updates ALL_CATEGORIES, expenses, budget plans, defaults
 function renameCatTo(oldSub, nn){
@@ -3083,7 +3431,18 @@ function deleteUser(name){
   showToast('✅ User deleted');
 }
 
+function saveSalaryDay(){
+  const v=parseInt(document.getElementById('salaryDayInput').value);
+  if(!v||v<1||v>31){showToast('⚠️ Enter a day between 1 and 31');return;}
+  const s=loadSettings();
+  s.salaryDay=v;
+  saveSettings(s);
+  showToast('✅ Salary day saved');
+  renderDash();
+}
 function renderAdminPrefs(){
+  const sdEl=document.getElementById('salaryDayInput');
+  if(sdEl) sdEl.value=getSalaryDay();
   const container=document.getElementById('adminUserCards');
   const stored=loadPerms();
   let html='';
