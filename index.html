@@ -487,6 +487,14 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
   </div>
   <div class="form-row">
+    <label class="form-label">Filter by Main Category</label>
+    <div class="select-wrap">
+      <select class="form-select" id="mainCatFilter" onchange="onMainCatFilterChange()">
+        <option value="__ALL__">All Categories</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
     <label class="form-label">Category</label>
     <div class="select-wrap">
       <select class="form-select" id="subCatSelect" onchange="onCatChange()">
@@ -2301,7 +2309,7 @@ function applyCustomCats(){
     saved.forEach(c=>ALL_CATEGORIES.push(c));
   }
 }
-function buildDropdownHTML(){
+function buildDropdownHTML(filterMain){
   // Group spendable by main category, all saving boxes in one group
   const spendMains={};
   const sbCats=[];
@@ -2314,8 +2322,10 @@ function buildDropdownHTML(){
       sbCats.push(c);
     }
   });
+  const noFilter=!filterMain || filterMain==='__ALL__';
   let html='<option value="">Select category...</option>';
   seenMains.forEach(main=>{
+    if(!noFilter && filterMain!==main) return;
     const icon=CAT_ICONS[main]||'📁';
     html+=`<optgroup label="${icon} ${main}">`;
     spendMains[main].forEach(c=>{
@@ -2323,7 +2333,7 @@ function buildDropdownHTML(){
     });
     html+='</optgroup>';
   });
-  if(sbCats.length){
+  if(sbCats.length && (noFilter || filterMain==='__SAVINGBOX__')){
     html+='<optgroup label="📦 Saving Box Items">';
     sbCats.forEach(c=>{
       html+=`<option value="${c.sub}|${c.main}|${c.type}">${c.sub}</option>`;
@@ -2332,12 +2342,48 @@ function buildDropdownHTML(){
   }
   return html;
 }
+// Build options for the "Filter by Main Category" select on Add Expenses
+function buildMainCatFilterHTML(){
+  const seenMains=[];
+  let hasSB=false;
+  ALL_CATEGORIES.forEach(c=>{
+    if(c.type==='Spendable'){
+      if(!seenMains.includes(c.main)) seenMains.push(c.main);
+    } else {
+      hasSB=true;
+    }
+  });
+  let html='<option value="__ALL__">All Categories</option>';
+  seenMains.forEach(main=>{
+    const icon=CAT_ICONS[main]||'📁';
+    html+=`<option value="${main}">${icon} ${main}</option>`;
+  });
+  if(hasSB) html+='<option value="__SAVINGBOX__">📦 Saving Box Items</option>';
+  return html;
+}
+// Filter the Category dropdown on Add Expenses by the selected main category
+function onMainCatFilterChange(){
+  const filterSel=document.getElementById('mainCatFilter');
+  const sel1=document.getElementById('subCatSelect');
+  if(!sel1) return;
+  sel1.innerHTML=buildDropdownHTML(filterSel?filterSel.value:'__ALL__');
+  sel1.value='';
+  onCatChange();
+}
 function rebuildDropdowns(){
-  const html=buildDropdownHTML();
+  const filterSel=document.getElementById('mainCatFilter');
+  if(filterSel){
+    const fv=filterSel.value||'__ALL__';
+    filterSel.innerHTML=buildMainCatFilterHTML();
+    if([...filterSel.options].some(o=>o.value===fv)) filterSel.value=fv;
+  }
+  const filterVal=filterSel?filterSel.value:'__ALL__';
+  const html=buildDropdownHTML(filterVal);
+  const htmlAll=buildDropdownHTML();
   const sel1=document.getElementById('subCatSelect');
   const sel2=document.getElementById('editCat');
   if(sel1){ const v=sel1.value; sel1.innerHTML=html; if(v) sel1.value=v; }
-  if(sel2){ const v=sel2.value; sel2.innerHTML=html.replace('<option value="">Select category...</option>',''); if(v) sel2.value=v; }
+  if(sel2){ const v=sel2.value; sel2.innerHTML=htmlAll.replace('<option value="">Select category...</option>',''); if(v) sel2.value=v; }
 }
 // Shared rename logic: updates ALL_CATEGORIES, expenses, budget plans, defaults
 function renameCatTo(oldSub, nn){
