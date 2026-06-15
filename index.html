@@ -242,6 +242,21 @@ body{
 .history-table td{padding:10px 10px;border-bottom:1px solid var(--border);color:var(--text)}
 .history-table tr:last-child td{border-bottom:none}
 .history-table .num{text-align:right}
+/* NET WORTH */
+.nw-trend{display:flex;align-items:flex-end;gap:10px;height:90px;margin:12px 0 4px;overflow-x:auto;padding-bottom:2px}
+.nw-trend-col{display:flex;flex-direction:column;align-items:center;flex:none;min-width:34px}
+.nw-trend-bar{width:26px;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:height 0.6s ease}
+.nw-trend-bar.neg{background:var(--red)}
+.nw-trend-label{font-size:9px;color:var(--muted);text-align:center;margin-top:4px;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.nw-empty-hint{font-size:12px;color:var(--muted);text-align:center;padding:16px;font-family:'IBM Plex Mono',monospace}
+/* EMERGENCY FUND */
+.ef-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:14px;margin-bottom:14px}
+.ef-bar-wrap{display:flex;gap:4px;margin:10px 0}
+.ef-bar-seg{flex:1;height:8px;border-radius:3px;background:var(--border2)}
+.ef-bar-seg.on{background:var(--accent)}
+.ef-bar-seg.red{background:var(--red)}
+.ef-bar-seg.yellow{background:#FBBF24}
+.ef-bar-seg.green{background:var(--green)}
 .neg{color:var(--red)!important}.pos{color:var(--green)!important}
 /* CHARTS */
 .chart-wrap{padding:16px}
@@ -472,6 +487,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div class="nav-tab" data-tab="budget" onclick="switchTab('budget',this)">💼 Budget</div>
   <div class="nav-tab" data-tab="savingboxes" onclick="switchTab('savingboxes',this)">💰 Saving Boxes</div>
   <div class="nav-tab" data-tab="spendable" onclick="switchTab('spendable',this)">💸 Spendable</div>
+  <div class="nav-tab" data-tab="networth" onclick="switchTab('networth',this)">💎 Net Worth</div>
   <div class="nav-tab" data-tab="import" onclick="switchTab('import',this)">⬆️📥 Import</div>
   <div class="nav-tab admin-only" data-tab="adminpref" onclick="switchTab('adminpref',this)" style="display:none">⚙️ Admin</div>
 </div>
@@ -566,6 +582,78 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
     <div class="sb-hint">📋 Click any Planned cell to edit • Spent = from LOG (Spendable type)</div>
     <div class="sb-scroll"><div id="spTableWrap"></div></div>
+  </div>
+</div>
+
+<!-- NET WORTH -->
+<div class="page" id="page-networth">
+  <div class="sb-wrap">
+    <div class="sb-summary">
+      <div class="sb-sum-card">
+        <div class="sb-sum-label">📈 Assets</div>
+        <div class="sb-sum-val salary-kpi" id="nwTotalAssets" style="color:var(--green)">0 SAR</div>
+      </div>
+      <div class="sb-sum-card">
+        <div class="sb-sum-label">📉 Liabilities</div>
+        <div class="sb-sum-val salary-kpi" id="nwTotalLiabilities" style="color:var(--red)">0 SAR</div>
+      </div>
+      <div class="sb-sum-card">
+        <div class="sb-sum-label">💎 Net Worth</div>
+        <div class="sb-sum-val salary-kpi" id="nwNetWorthVal">0 SAR</div>
+      </div>
+    </div>
+
+    <div style="padding:0 16px">
+      <div class="section-title">Assets</div>
+      <div id="nwAssetsList"></div>
+      <div class="add-box-card" onclick="openNwAccountModal('asset')">
+        <div style="font-size:28px">💰</div>
+        <div class="add-box-card-text">+ Add Asset</div>
+      </div>
+
+      <div class="section-title" style="margin-top:20px">Liabilities</div>
+      <div id="nwLiabilitiesList"></div>
+      <div class="add-box-card" onclick="openNwAccountModal('liability')">
+        <div style="font-size:28px">📉</div>
+        <div class="add-box-card-text">+ Add Liability</div>
+      </div>
+
+      <div class="section-title" style="margin-top:20px;display:flex;justify-content:space-between;align-items:center">
+        <span>History</span>
+        <button class="box-btn dep" style="flex:none;padding:8px 14px;font-size:11px" onclick="saveNwSnapshot()">📸 Save This Month's Snapshot</button>
+      </div>
+      <div id="nwTrendChart" class="nw-trend"></div>
+      <table class="history-table" id="nwHistoryTable" style="display:none">
+        <thead><tr><th>Month</th><th class="num">Assets</th><th class="num">Liabilities</th><th class="num">Net Worth</th><th class="num">Growth</th></tr></thead>
+        <tbody id="nwHistoryRows"></tbody>
+      </table>
+      <div class="nw-empty-hint" id="nwHistoryEmpty">No snapshots yet — tap "Save This Month's Snapshot" to start tracking your net worth over time.</div>
+    </div>
+  </div>
+</div>
+
+<!-- NET WORTH ACCOUNT MODAL -->
+<div class="modal-overlay" id="nwAccountModal" onclick="closeNwAccountModal(event)">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title" id="nwAccountModalTitle">Add Asset <button class="modal-close" onclick="closeNwAccountModal()">✕</button></div>
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="nwAccName" type="text" placeholder="e.g. Al Rajhi Checking">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Type</label>
+      <div class="select-wrap">
+        <select class="form-select" id="nwAccType"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Balance (SAR)</label>
+      <input class="form-input" id="nwAccBalance" type="number" inputmode="decimal" placeholder="0">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNwAccountModal()">Cancel</button>
+      <button class="btn-save" onclick="saveNwAccount()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -714,6 +802,15 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       <div class="kpi-card full"><div class="kpi-label">Actual Spent (Spendable)</div><div class="kpi-value salary-kpi" style="color:var(--red)" id="dSpent"></div></div>
       <div class="kpi-card full"><div class="kpi-label">Remaining Spendable</div><div class="kpi-value salary-kpi" id="dRemaining"></div></div>
       <div class="kpi-card full"><div class="kpi-label">Projected Month Savings</div><div class="kpi-value salary-kpi" id="dSavings"></div></div>
+    </div>
+    <div class="section-title">Emergency Fund</div>
+    <div class="ef-card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <span class="kpi-label" style="margin-bottom:0">Months of Essential Expenses Covered</span>
+        <span class="kpi-value salary-kpi" id="efMonths" style="font-size:18px"></span>
+      </div>
+      <div class="ef-bar-wrap" id="efBarWrap"></div>
+      <div id="efDetail" style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:6px"></div>
     </div>
     <div class="section-title">Spendable Categories Only</div>
     <div id="categoryBars"></div>
@@ -1243,6 +1340,228 @@ function rebuildPayMethodDropdowns(){
   });
 }
 
+// ── NET WORTH ──────────────────────────────────────────────
+const NET_WORTH_KEY='ksa_net_worth';
+const NW_TYPE_LABELS={
+  bank:'Bank Account',cash:'Cash',savings:'Savings',investment:'Investment',gold:'Gold',vehicle:'Vehicle',asset_other:'Other Asset',
+  loan:'Loan',credit_card:'Credit Card',debt:'Personal Debt',liability_other:'Other Liability'
+};
+const NW_ASSET_TYPES=['bank','cash','savings','investment','gold','vehicle','asset_other'];
+const NW_LIABILITY_TYPES=['loan','credit_card','debt','liability_other'];
+function loadNetWorth(){
+  try{
+    const v=JSON.parse(localStorage.getItem(NET_WORTH_KEY));
+    if(v&&typeof v==='object') return {accounts:v.accounts||[],history:v.history||{}};
+  }catch(e){}
+  return {accounts:[],history:{}};
+}
+function saveNetWorth(nw){
+  localStorage.setItem(NET_WORTH_KEY,JSON.stringify(nw));
+  gsPush('saveKV',{key:'net_worth',value:nw});
+}
+function nwTotals(nw){
+  nw=nw||loadNetWorth();
+  let assets=0,liabilities=0;
+  (nw.accounts||[]).forEach(a=>{
+    if(NW_ASSET_TYPES.includes(a.type)) assets+=Number(a.balance)||0;
+    else liabilities+=Number(a.balance)||0;
+  });
+  return {assets,liabilities,netWorth:assets-liabilities};
+}
+function getNetWorth(){return nwTotals().netWorth;}
+function getLiquidAssets(){
+  const nw=loadNetWorth();
+  return (nw.accounts||[]).filter(a=>['bank','cash','savings'].includes(a.type)).reduce((s,a)=>s+(Number(a.balance)||0),0);
+}
+
+// ── NET WORTH UI ───────────────────────────────────────────
+let _nwEditId=null, _nwEditCategory='asset';
+function nwIcon(type){
+  return {bank:'🏦',cash:'💵',savings:'🏦',investment:'📈',gold:'🪙',vehicle:'🚗',asset_other:'📦',
+          loan:'🏦',credit_card:'💳',debt:'🤝',liability_other:'📄'}[type]||'💰';
+}
+function nwAccountRowHTML(a){
+  return`<div class="box-card">
+    <div class="box-card-header">
+      <div class="box-icon">${nwIcon(a.type)}</div>
+      <div class="box-info">
+        <div class="box-name">${a.name}</div>
+        <div class="box-notes">${NW_TYPE_LABELS[a.type]||a.type}</div>
+      </div>
+    </div>
+    <div class="box-balance salary-kpi">${fmt(a.balance)} SAR</div>
+    <div class="box-btn-row">
+      <button class="box-btn dep" onclick="openNwAccountModal('${NW_ASSET_TYPES.includes(a.type)?'asset':'liability'}','${a.id}')">✏️ Edit</button>
+      <button class="box-btn del" onclick="deleteNwAccount('${a.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+function renderNetWorth(){
+  const nw=loadNetWorth();
+  const accounts=nw.accounts||[];
+  const assets=accounts.filter(a=>NW_ASSET_TYPES.includes(a.type));
+  const liabilities=accounts.filter(a=>NW_LIABILITY_TYPES.includes(a.type));
+  const totals=nwTotals(nw);
+  document.getElementById('nwTotalAssets').textContent=fmt(totals.assets)+' SAR';
+  document.getElementById('nwTotalLiabilities').textContent=fmt(totals.liabilities)+' SAR';
+  const nwVal=document.getElementById('nwNetWorthVal');
+  nwVal.textContent=fmt(totals.netWorth)+' SAR';
+  nwVal.style.color=totals.netWorth>=0?'var(--accent)':'var(--red)';
+  document.getElementById('nwAssetsList').innerHTML=assets.length?assets.map(nwAccountRowHTML).join(''):'<div class="nw-empty-hint">No assets added yet.</div>';
+  document.getElementById('nwLiabilitiesList').innerHTML=liabilities.length?liabilities.map(nwAccountRowHTML).join(''):'<div class="nw-empty-hint">No liabilities added yet.</div>';
+
+  // History / trend
+  const months=Object.keys(nw.history||{}).sort();
+  const trendEl=document.getElementById('nwTrendChart');
+  const tableEl=document.getElementById('nwHistoryTable');
+  const emptyEl=document.getElementById('nwHistoryEmpty');
+  if(months.length){
+    trendEl.style.display='flex'; tableEl.style.display=''; emptyEl.style.display='none';
+    const maxAbs=Math.max(...months.map(m=>Math.abs(nw.history[m].netWorth||0)),1);
+    trendEl.innerHTML=months.map(m=>{
+      const h=nw.history[m];
+      const pct=Math.max((Math.abs(h.netWorth)/maxAbs)*100,2);
+      return`<div class="nw-trend-col"><div class="nw-trend-bar ${h.netWorth<0?'neg':''}" style="height:${pct}%"></div><div class="nw-trend-label">${formatMonth(m).split(' ')[0]}</div></div>`;
+    }).join('');
+    document.getElementById('nwHistoryRows').innerHTML=[...months].reverse().map((m,i,arr)=>{
+      const h=nw.history[m];
+      const prev=arr[i+1]?nw.history[arr[i+1]]:null;
+      let growth='-';
+      if(prev&&prev.netWorth!==0){
+        const pct=((h.netWorth-prev.netWorth)/Math.abs(prev.netWorth))*100;
+        growth=(pct>=0?'↑ ':'↓ ')+Math.abs(pct).toFixed(1)+'%';
+      }
+      return`<tr><td>${formatMonth(m)}</td><td class="num salary-kpi">${fmt(h.assets)}</td><td class="num salary-kpi">${fmt(h.liabilities)}</td><td class="num salary-kpi" style="font-weight:700;color:${h.netWorth>=0?'var(--accent)':'var(--red)'}">${fmt(h.netWorth)}</td><td class="num">${growth}</td></tr>`;
+    }).join('');
+  } else {
+    trendEl.style.display='none'; tableEl.style.display='none'; emptyEl.style.display='block';
+  }
+  applyEyeState();
+}
+function openNwAccountModal(category,id){
+  _nwEditCategory=category; _nwEditId=id||null;
+  const types=category==='asset'?NW_ASSET_TYPES:NW_LIABILITY_TYPES;
+  const sel=document.getElementById('nwAccType');
+  sel.innerHTML=types.map(t=>`<option value="${t}">${NW_TYPE_LABELS[t]}</option>`).join('');
+  document.getElementById('nwAccountModalTitle').innerHTML=(id?'✏️ Edit ':'➕ Add ')+(category==='asset'?'Asset':'Liability')+' <button class="modal-close" onclick="closeNwAccountModal()">✕</button>';
+  if(id){
+    const acc=(loadNetWorth().accounts||[]).find(a=>String(a.id)===String(id));
+    if(acc){
+      document.getElementById('nwAccName').value=acc.name;
+      sel.value=acc.type;
+      document.getElementById('nwAccBalance').value=acc.balance;
+    }
+  } else {
+    document.getElementById('nwAccName').value='';
+    document.getElementById('nwAccBalance').value='';
+    sel.value=types[0];
+  }
+  document.getElementById('nwAccountModal').classList.add('open');
+}
+function closeNwAccountModal(event){
+  if(event&&event.target!==document.getElementById('nwAccountModal'))return;
+  document.getElementById('nwAccountModal').classList.remove('open');
+}
+function saveNwAccount(){
+  const name=document.getElementById('nwAccName').value.trim();
+  const type=document.getElementById('nwAccType').value;
+  const balance=parseFloat(document.getElementById('nwAccBalance').value)||0;
+  if(!name){showToast('⚠️ Enter a name');return;}
+  const nw=loadNetWorth();
+  nw.accounts=nw.accounts||[];
+  if(_nwEditId){
+    const acc=nw.accounts.find(a=>String(a.id)===String(_nwEditId));
+    if(acc){acc.name=name;acc.type=type;acc.balance=balance;}
+  } else {
+    nw.accounts.push({id:Date.now().toString(36),name,type,balance});
+  }
+  saveNetWorth(nw);
+  closeNwAccountModal();
+  renderNetWorth();
+  renderDash();
+  showToast('✅ Saved');
+}
+function deleteNwAccount(id){
+  const nw=loadNetWorth();
+  nw.accounts=(nw.accounts||[]).filter(a=>String(a.id)!==String(id));
+  saveNetWorth(nw);
+  renderNetWorth();
+  renderDash();
+}
+function saveNwSnapshot(){
+  const nw=loadNetWorth();
+  const totals=nwTotals(nw);
+  nw.history=nw.history||{};
+  nw.history[getCurrentMonth()]={assets:totals.assets,liabilities:totals.liabilities,netWorth:totals.netWorth};
+  saveNetWorth(nw);
+  renderNetWorth();
+  showToast('📸 Snapshot saved for '+formatMonth(getCurrentMonth()));
+}
+
+// ── EMERGENCY FUND ─────────────────────────────────────────
+const DEFAULT_ESSENTIAL_CATS=['Rent','Electricity Bill','Water Bill','Internet','Internet Bills','Mobile Bills','Groceries','Protein food','Food Required Items'];
+function getEssentialCategories(){
+  const s=loadSettings();
+  return Array.isArray(s.essentialCategories)&&s.essentialCategories.length?s.essentialCategories:DEFAULT_ESSENTIAL_CATS;
+}
+function getEssentialMonthlyAvg(){
+  const cats=getEssentialCategories();
+  const months=getMonths().filter(m=>m!==getCurrentMonth()).slice(0,3);
+  const useMonths=months.length?months:[getCurrentMonth()];
+  const exps=loadExpenses();
+  const totalPerMonth=useMonths.map(m=>exps.filter(e=>e.month===m&&cats.includes(e.sub)).reduce((s,e)=>s+(Number(e.amount)||0),0));
+  return totalPerMonth.reduce((a,b)=>a+b,0)/totalPerMonth.length;
+}
+function getEmergencyFundMonths(){
+  const avg=getEssentialMonthlyAvg();
+  if(!avg) return null;
+  return getLiquidAssets()/avg;
+}
+
+// ── SALARY DAY / FORECAST SETTINGS ───────────────────────────
+function getSalaryDay(){
+  const d=loadSettings().salaryDay;
+  return (Number(d)>=1&&Number(d)<=31)?Number(d):27;
+}
+
+// ── RECURRING EXPENSES ────────────────────────────────────────
+const RECURRING_KEY='ksa_recurring_expenses';
+function loadRecurring(){try{const v=JSON.parse(localStorage.getItem(RECURRING_KEY));return Array.isArray(v)?v:[];}catch(e){return[];}}
+function saveRecurring(r){
+  localStorage.setItem(RECURRING_KEY,JSON.stringify(r));
+  gsPush('saveKV',{key:'recurring_expenses',value:r});
+}
+
+// ── ANNUAL FINANCIAL PLANNER ──────────────────────────────────
+const ANNUAL_PLAN_KEY='ksa_annual_plan';
+function loadAnnualPlan(){try{return JSON.parse(localStorage.getItem(ANNUAL_PLAN_KEY))||{};}catch(e){return{};}}
+function saveAnnualPlan(p){
+  localStorage.setItem(ANNUAL_PLAN_KEY,JSON.stringify(p));
+  gsPush('saveKV',{key:'annual_plan',value:p});
+}
+
+// ── SMART QUICK ADD ────────────────────────────────────────────
+const QUICK_ADD_KEY='ksa_quick_add_config';
+const DEFAULT_QUICK_ADD=[
+  {id:'qa1',label:'Coffee',icon:'☕',main:'Welfare',sub:'Coffee Shops',amount:null,pay:''},
+  {id:'qa2',label:'Fuel',icon:'⛽',main:'Transportation',sub:'Car Petrol',amount:null,pay:''},
+  {id:'qa3',label:'Groceries',icon:'🛒',main:'Monthly Needs',sub:'Groceries',amount:null,pay:''},
+  {id:'qa4',label:'Restaurant',icon:'🍽️',main:'Welfare',sub:'Restaurants',amount:null,pay:''},
+  {id:'qa5',label:'Parking',icon:'🅿️',main:'Transportation',sub:'Parking Fees',amount:null,pay:''},
+  {id:'qa6',label:'Delivery',icon:'🛵',main:'Welfare',sub:'Restaurants',amount:null,pay:''},
+];
+function loadQuickAdd(){
+  try{
+    const v=JSON.parse(localStorage.getItem(QUICK_ADD_KEY));
+    if(Array.isArray(v)&&v.length) return v;
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_QUICK_ADD));
+}
+function saveQuickAdd(q){
+  localStorage.setItem(QUICK_ADD_KEY,JSON.stringify(q));
+  gsPush('saveKV',{key:'quick_add_config',value:q});
+}
+
 function getUserPerms(username){
   const stored=loadPerms();
   if(stored[username]) return stored[username];
@@ -1353,6 +1672,10 @@ function showApp(){
         localStorage.setItem(PAY_METHODS_KEY,JSON.stringify(res.payment_methods));
         rebuildPayMethodDropdowns();
       }
+      if(res.net_worth){ localStorage.setItem(NET_WORTH_KEY,JSON.stringify(res.net_worth)); }
+      if(res.recurring_expenses){ localStorage.setItem(RECURRING_KEY,JSON.stringify(res.recurring_expenses)); }
+      if(res.annual_plan){ localStorage.setItem(ANNUAL_PLAN_KEY,JSON.stringify(res.annual_plan)); }
+      if(res.quick_add_config && Array.isArray(res.quick_add_config) && res.quick_add_config.length>0){ localStorage.setItem(QUICK_ADD_KEY,JSON.stringify(res.quick_add_config)); }
       setSyncStatus('idle');
       renderLog();renderDash();renderBudgetTab();
     }).catch(()=>setSyncStatus('error'));
@@ -1392,6 +1715,7 @@ function switchTab(tab,el){
   if(tab==='boxes')renderBoxes();
   if(tab==='savingboxes')renderSavingBoxes();
   if(tab==='spendable')renderSpendable();
+  if(tab==='networth')renderNetWorth();
 }
 
 // EYE - 3-mode visibility
@@ -1557,6 +1881,10 @@ async function saveAndSync(){
         localStorage.setItem(PAY_METHODS_KEY,JSON.stringify(res.payment_methods));
         rebuildPayMethodDropdowns();
       }
+      if(res.net_worth){ localStorage.setItem(NET_WORTH_KEY,JSON.stringify(res.net_worth)); }
+      if(res.recurring_expenses){ localStorage.setItem(RECURRING_KEY,JSON.stringify(res.recurring_expenses)); }
+      if(res.annual_plan){ localStorage.setItem(ANNUAL_PLAN_KEY,JSON.stringify(res.annual_plan)); }
+      if(res.quick_add_config && Array.isArray(res.quick_add_config) && res.quick_add_config.length>0){ localStorage.setItem(QUICK_ADD_KEY,JSON.stringify(res.quick_add_config)); }
     }
     btn.textContent='✅ Saved!';
     setTimeout(()=>{btn.textContent='💾 Save';btn.disabled=false;},2000);
@@ -1775,7 +2103,33 @@ function renderMonthlyDash(){
     const over=budget>0&&total>budget;
     return`<div class="progress-wrap"><div class="progress-label"><span class="progress-name">${CAT_ICONS[cat]||'💸'} ${cat}</span><span class="progress-nums salary-kpi">${fmt(total)} SAR${budget?' / '+fmt(budget):''}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${over?'var(--red)':'var(--accent)'}"></div></div></div>`;
   }).join('');
+  renderEmergencyFund();
   applyEyeState();
+}
+
+function renderEmergencyFund(){
+  const efMonthsEl=document.getElementById('efMonths');
+  const efBar=document.getElementById('efBarWrap');
+  const efDetail=document.getElementById('efDetail');
+  if(!efMonthsEl)return;
+  const months=getEmergencyFundMonths();
+  const liquid=getLiquidAssets();
+  const essential=getEssentialMonthlyAvg();
+  if(months===null){
+    efMonthsEl.textContent='—';
+    efMonthsEl.style.color='var(--text)';
+    efBar.innerHTML='';
+    efDetail.textContent='Add expense history for essential categories to calculate.';
+    return;
+  }
+  const level=months<3?'red':(months<6?'yellow':'green');
+  efMonthsEl.textContent=months.toFixed(1)+' mo';
+  efMonthsEl.style.color=level==='red'?'var(--red)':(level==='yellow'?'#FBBF24':'var(--green)');
+  const filled=Math.max(0,Math.min(12,Math.round(months)));
+  let segs='';
+  for(let i=1;i<=12;i++){segs+=`<div class="ef-bar-seg ${i<=filled?'on '+level:''}"></div>`;}
+  efBar.innerHTML=segs;
+  efDetail.textContent=`Liquid assets: ${fmt(liquid)} SAR · Essential/mo: ${fmt(essential)} SAR`;
 }
 function selectDashMonth(m){selectedDashMonth=m;renderMonthlyDash();}
 
