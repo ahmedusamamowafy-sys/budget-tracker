@@ -487,14 +487,6 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
   </div>
   <div class="form-row">
-    <label class="form-label">Filter by Main Category</label>
-    <div class="select-wrap">
-      <select class="form-select" id="mainCatFilter" onchange="onMainCatFilterChange()">
-        <option value="__ALL__">All Categories</option>
-      </select>
-    </div>
-  </div>
-  <div class="form-row">
     <label class="form-label">Category</label>
     <div class="select-wrap">
       <select class="form-select" id="subCatSelect" onchange="onCatChange()">
@@ -1119,7 +1111,7 @@ const MAIN_BUDGETS={'Housing':150,'Monthly Needs':1150,'Transportation':720,'Per
 const SUB_BUDGETS={'Internet':0,'Home Maintenance':50,'Cleaning Supplies':50,'Protein food':635,'Food Required Items':100,'Groceries':150,'Laundry':0,'Household Items':85,'Internet Bills':0,'Mobile Bills':180,'Car Petrol':300,'Parking Fees':20,'Car Wash':50,'Haircut / Salon':30,'Skincare':50,'Shopping':500,'Restaurants':150,'Coffee Shops':150,'Entertainment':150,'Weekend Trips':150};
 const SUB_TO_MAIN={'Internet':'Housing','Home Maintenance':'Housing','Cleaning Supplies':'Housing','Protein food':'Monthly Needs','Food Required Items':'Monthly Needs','Groceries':'Monthly Needs','Laundry':'Monthly Needs','Household Items':'Monthly Needs','Internet Bills':'Monthly Needs','Mobile Bills':'Monthly Needs','Car Petrol':'Transportation','Parking Fees':'Transportation','Car Wash':'Transportation','Haircut / Salon':'Personal Care','Skincare':'Personal Care','Shopping':'Welfare','Restaurants':'Welfare','Coffee Shops':'Welfare','Entertainment':'Welfare','Weekend Trips':'Welfare'};
 
-let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null}, logCollapsed={spend:false,save:false};
+let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false};
 
 function loadSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function saveSettings(s){
@@ -1580,30 +1572,38 @@ function renderFilterSlicers(expenses){
   const types=[...new Set(expenses.map(e=>e.type).filter(Boolean))];
   const pays=[...new Set(expenses.map(e=>e.pay).filter(Boolean))];
   const mains=[...new Set(expenses.map(e=>e.main).filter(Boolean))];
-  
+  // Sub-category options narrow down based on the other active filters
+  let subBase=expenses;
+  if(activeFilters.type) subBase=subBase.filter(e=>e.type===activeFilters.type);
+  if(activeFilters.pay) subBase=subBase.filter(e=>e.pay===activeFilters.pay);
+  if(activeFilters.main) subBase=subBase.filter(e=>e.main===activeFilters.main);
+  const subs=[...new Set(subBase.map(e=>e.sub).filter(Boolean))];
+
   function chip(label,field,val){
     const active=activeFilters[field]===val;
-    const colors={type:'rgba(96,165,250,0.15)',pay:'rgba(167,139,250,0.15)',main:'rgba(200,241,53,0.15)'};
-    const activeColors={type:'var(--blue)',pay:'rgb(167,139,250)',main:'var(--accent)'};
-    const borders={type:'rgba(96,165,250,0.4)',pay:'rgba(167,139,250,0.4)',main:'rgba(200,241,53,0.4)'};
+    const colors={type:'rgba(96,165,250,0.15)',pay:'rgba(167,139,250,0.15)',main:'rgba(200,241,53,0.15)',sub:'rgba(34,211,238,0.15)'};
+    const activeColors={type:'var(--blue)',pay:'rgb(167,139,250)',main:'var(--accent)',sub:'rgb(34,211,238)'};
+    const borders={type:'rgba(96,165,250,0.4)',pay:'rgba(167,139,250,0.4)',main:'rgba(200,241,53,0.4)',sub:'rgba(34,211,238,0.4)'};
     return`<button onclick="toggleFilter('${field}','${val}')" style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid ${active?borders[field]:'var(--border2)'};background:${active?colors[field]:'var(--card)'};color:${active?activeColors[field]:'var(--muted)'};cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all 0.2s;white-space:nowrap">${label}</button>`;
   }
-  
+
   let rows=[];
   if(types.length>1) rows.push(`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding-top:3px;min-width:36px">Type:</span>${types.map(t=>chip(t,'type',t)).join('')}</div>`);
   if(pays.length>1) rows.push(`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding-top:3px;min-width:36px">Pay:</span>${pays.map(p=>chip(p,'pay',p)).join('')}</div>`);
   if(mains.length>1) rows.push(`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding-top:3px;min-width:36px">Cat:</span>${mains.map(m=>chip(CAT_ICONS[m]?CAT_ICONS[m]+' '+m:m,'main',m)).join('')}</div>`);
-  
+  if(subs.length>1) rows.push(`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px"><span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding-top:3px;min-width:36px">Sub:</span>${subs.map(s=>chip(s,'sub',s)).join('')}</div>`);
+
   const hasFilter=Object.values(activeFilters).some(v=>v!==null);
   const clearBtn=hasFilter?`<button onclick="clearFilters()" style="font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:var(--red);cursor:pointer;font-family:'IBM Plex Mono',monospace">✕ Clear</button>`:'';
-  
+
   document.getElementById('filterSlicers').innerHTML=rows.length?`<div>${rows.join('')}${clearBtn?'<div style="margin-top:2px">'+clearBtn+'</div>':''}</div>`:'';
 }
 function toggleFilter(field,val){
   activeFilters[field]=activeFilters[field]===val?null:val;
+  if(field!=='sub') activeFilters.sub=null; // sub options depend on other filters, reset to avoid stale combo
   renderLog();
 }
-function clearFilters(){activeFilters={type:null,pay:null,main:null};renderLog();}
+function clearFilters(){activeFilters={type:null,pay:null,main:null,sub:null};renderLog();}
 function setSort(field){
   if(sortField===field){sortDir=sortDir==='asc'?'desc':'asc';}else{sortField=field;sortDir=field==='date'?'desc':'desc';}
   renderLog();
@@ -1627,6 +1627,7 @@ function renderLog(){
   if(activeFilters.type) expenses=expenses.filter(e=>e.type===activeFilters.type);
   if(activeFilters.pay) expenses=expenses.filter(e=>e.pay===activeFilters.pay);
   if(activeFilters.main) expenses=expenses.filter(e=>e.main===activeFilters.main);
+  if(activeFilters.sub) expenses=expenses.filter(e=>e.sub===activeFilters.sub);
   expenses.sort((a,b)=>{
     if(sortField==='amount') return sortDir==='asc'?a.amount-b.amount:b.amount-a.amount;
     const da=new Date(a.date),db=new Date(b.date);
@@ -2309,7 +2310,7 @@ function applyCustomCats(){
     saved.forEach(c=>ALL_CATEGORIES.push(c));
   }
 }
-function buildDropdownHTML(filterMain){
+function buildDropdownHTML(){
   // Group spendable by main category, all saving boxes in one group
   const spendMains={};
   const sbCats=[];
@@ -2322,10 +2323,8 @@ function buildDropdownHTML(filterMain){
       sbCats.push(c);
     }
   });
-  const noFilter=!filterMain || filterMain==='__ALL__';
   let html='<option value="">Select category...</option>';
   seenMains.forEach(main=>{
-    if(!noFilter && filterMain!==main) return;
     const icon=CAT_ICONS[main]||'📁';
     html+=`<optgroup label="${icon} ${main}">`;
     spendMains[main].forEach(c=>{
@@ -2333,7 +2332,7 @@ function buildDropdownHTML(filterMain){
     });
     html+='</optgroup>';
   });
-  if(sbCats.length && (noFilter || filterMain==='__SAVINGBOX__')){
+  if(sbCats.length){
     html+='<optgroup label="📦 Saving Box Items">';
     sbCats.forEach(c=>{
       html+=`<option value="${c.sub}|${c.main}|${c.type}">${c.sub}</option>`;
@@ -2342,48 +2341,12 @@ function buildDropdownHTML(filterMain){
   }
   return html;
 }
-// Build options for the "Filter by Main Category" select on Add Expenses
-function buildMainCatFilterHTML(){
-  const seenMains=[];
-  let hasSB=false;
-  ALL_CATEGORIES.forEach(c=>{
-    if(c.type==='Spendable'){
-      if(!seenMains.includes(c.main)) seenMains.push(c.main);
-    } else {
-      hasSB=true;
-    }
-  });
-  let html='<option value="__ALL__">All Categories</option>';
-  seenMains.forEach(main=>{
-    const icon=CAT_ICONS[main]||'📁';
-    html+=`<option value="${main}">${icon} ${main}</option>`;
-  });
-  if(hasSB) html+='<option value="__SAVINGBOX__">📦 Saving Box Items</option>';
-  return html;
-}
-// Filter the Category dropdown on Add Expenses by the selected main category
-function onMainCatFilterChange(){
-  const filterSel=document.getElementById('mainCatFilter');
-  const sel1=document.getElementById('subCatSelect');
-  if(!sel1) return;
-  sel1.innerHTML=buildDropdownHTML(filterSel?filterSel.value:'__ALL__');
-  sel1.value='';
-  onCatChange();
-}
 function rebuildDropdowns(){
-  const filterSel=document.getElementById('mainCatFilter');
-  if(filterSel){
-    const fv=filterSel.value||'__ALL__';
-    filterSel.innerHTML=buildMainCatFilterHTML();
-    if([...filterSel.options].some(o=>o.value===fv)) filterSel.value=fv;
-  }
-  const filterVal=filterSel?filterSel.value:'__ALL__';
-  const html=buildDropdownHTML(filterVal);
-  const htmlAll=buildDropdownHTML();
+  const html=buildDropdownHTML();
   const sel1=document.getElementById('subCatSelect');
   const sel2=document.getElementById('editCat');
   if(sel1){ const v=sel1.value; sel1.innerHTML=html; if(v) sel1.value=v; }
-  if(sel2){ const v=sel2.value; sel2.innerHTML=htmlAll.replace('<option value="">Select category...</option>',''); if(v) sel2.value=v; }
+  if(sel2){ const v=sel2.value; sel2.innerHTML=html.replace('<option value="">Select category...</option>',''); if(v) sel2.value=v; }
 }
 // Shared rename logic: updates ALL_CATEGORIES, expenses, budget plans, defaults
 function renameCatTo(oldSub, nn){
