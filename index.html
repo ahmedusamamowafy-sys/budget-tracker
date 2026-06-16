@@ -2472,7 +2472,7 @@ function renderLog(){
   document.getElementById('logTotal').textContent=fmt(expenses.reduce((s,e)=>s+e.amount,0))+' SAR';
   document.getElementById('logTotalBreakdown').textContent=totalSave>0?`Spend: ${fmt(totalSpend)} · Save: ${fmt(totalSave)}`:`Spendable: ${fmt(totalSpend)}`;
   const list=document.getElementById('expenseList');
-  if(!expenses.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No expenses for ${formatMonth(selectedLogMonth)}</div></div>`;return;}hh
+  if(!expenses.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No expenses for ${formatMonth(selectedLogMonth)}</div></div>`;return;}
   function buildItems(items){
     return items.map(e=>{
       const icon=CAT_ICONS[e.main]||CAT_ICONS.default;
