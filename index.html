@@ -3209,7 +3209,25 @@ function openThemeModal(){_themePending={themeId:_themeState.themeId,mode:_theme
 function closeThemeModal(e){if(e&&e.target!==document.getElementById('themeModal'))return;document.getElementById('themeModal').classList.remove('open');applyThemeVars(_themeState.themeId,_themeState.mode,_themeState.customNight,_themeState.customDay);}
 function setThemeMode(mode){_themePending.mode=mode;document.getElementById('tmNight').classList.toggle('active',mode==='night');document.getElementById('tmDay').classList.toggle('active',mode==='day');buildThemeSwatches();previewSelected();}
 function buildThemeModal(){const mode=_themePending.mode;document.getElementById('tmNight').classList.toggle('active',mode==='night');document.getElementById('tmDay').classList.toggle('active',mode==='day');buildThemeSwatches();const cn=_themeState.customNight||{};const cd=_themeState.customDay||{};const c=_themePending.mode==='night'?cn:cd;document.getElementById('cpBg').value=c['--bg']||'#0A0A0D';document.getElementById('cpCard').value=c['--card']||'#1E1E22';document.getElementById('cpText').value=c['--text']||'#F0F0F5';document.getElementById('cpMuted').value=c['--muted']||'#70707A';document.getElementById('cpAccent').value=c['--accent']||'#C8F135';document.getElementById('cpBorder').value=c['--border']||'#2A2A30';document.getElementById('customPickers').classList.toggle('visible',_themePending.themeId==='custom');}
-function buildThemeSwatches(){const grid=document.getElementById('themeGrid');grid.innerHTML=Object.entries(THEMES_DATA).map(([id,t])=>{const vars=id==='custom'?((_themePending.mode==='night'?_themeState.customNight:_themeState.customDay)||{}):(t[_themePending.mode]||t.night);const bg=vars['--bg']||'#111';const card=vars['--card']||'#222';const accent=vars['--accent']||'#888';const isSelected=_themePending.themeId===id;return'<div class="theme-swatch'+(isSelected?' selected':'')+'" onclick="selectThemeSwatch(''+id+'')">'+'<div class="theme-swatch-bar" style="background:'+bg+'">'+'<div class="theme-swatch-seg" style="background:'+card+'"></div>'+'<div class="theme-swatch-seg" style="background:'+accent+'"></div>'+'<div class="theme-swatch-seg" style="background:'+bg+'"></div>'+'</div>'+'<div class="theme-swatch-name">'+t.emoji+' '+t.name+'</div>'+'<span class="theme-check">✓</span>'+'</div>';}).join('');}
+function buildThemeSwatches(){
+  const grid=document.getElementById('themeGrid');
+  grid.innerHTML=Object.entries(THEMES_DATA).map(([id,t])=>{
+    const vars=id==='custom'?((_themePending.mode==='night'?_themeState.customNight:_themeState.customDay)||{}):(t[_themePending.mode]||t.night);
+    const bg=vars['--bg']||'#111';
+    const card=vars['--card']||'#222';
+    const accent=vars['--accent']||'#888';
+    const isSelected=_themePending.themeId===id;
+    return '<div class="theme-swatch'+(isSelected?' selected':'')+'" onclick="selectThemeSwatch(this.dataset.tid)" data-tid="'+id+'">'
+      +'<div class="theme-swatch-bar" style="background:'+bg+'">'
+      +'<div class="theme-swatch-seg" style="background:'+card+'"></div>'
+      +'<div class="theme-swatch-seg" style="background:'+accent+'"></div>'
+      +'<div class="theme-swatch-seg" style="background:'+bg+'"></div>'
+      +'</div>'
+      +'<div class="theme-swatch-name">'+t.emoji+' '+t.name+'</div>'
+      +'<span class="theme-check">✓</span>'
+      +'</div>';
+  }).join('');
+}
 function selectThemeSwatch(id){_themePending.themeId=id;buildThemeSwatches();document.getElementById('customPickers').classList.toggle('visible',id==='custom');previewSelected();}
 function previewSelected(){applyThemeVars(_themePending.themeId,_themePending.mode,_themeState.customNight,_themeState.customDay);}
 function previewCustom(){if(_themePending.themeId!=='custom')return;const c={'--bg':document.getElementById('cpBg').value,'--card':document.getElementById('cpCard').value,'--text':document.getElementById('cpText').value,'--muted':document.getElementById('cpMuted').value,'--accent':document.getElementById('cpAccent').value,'--border':document.getElementById('cpBorder').value};const vars=buildCustomVars(c);const root=document.documentElement;Object.entries(vars).forEach(([k,v])=>root.style.setProperty(k,v));}
