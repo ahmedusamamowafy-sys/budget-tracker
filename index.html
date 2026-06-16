@@ -2903,7 +2903,7 @@ function renderAnnualDash(){
   let totalSalary=0,totalSpent=0,totalSaved=0,monthsWithData=0;
 
   // Avg of last 3 past months' actual spendable expenses → used as estimate for future months
-  const pastMs=months.map(mm=>`${annualYear}-${mm}`).filter(m=>m<currentM);
+  const pastMs=[...new Set(allExp.map(e=>e.month))].filter(m=>m<=currentM).sort();
   const last3Ms=pastMs.slice(-3);
   const avgEst=last3Ms.length>0?Math.round(last3Ms.reduce((s,m)=>s+allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((a,e)=>a+e.amount,0),0)/last3Ms.length):0;
 
