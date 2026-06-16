@@ -276,6 +276,39 @@ body{
 .health-bar{height:6px;background:var(--border2);border-radius:3px;overflow:hidden}
 .health-bar-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
 .health-rec{padding:10px 12px;background:var(--surface);border-radius:var(--r2);margin-bottom:8px;font-size:12px;color:var(--text);line-height:1.6;border-left:3px solid var(--rec-color,var(--border2))}
+/* GOALS CENTER */
+.goal-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative}
+.goal-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.goal-emoji{font-size:22px;line-height:1}
+.goal-name{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.goal-actions{display:flex;gap:6px}
+.goal-action-btn{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 5px;border-radius:6px;transition:background 0.15s}
+.goal-action-btn:active{background:var(--border2)}
+.goal-amounts{display:flex;justify-content:space-between;margin-bottom:7px;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.goal-saved{color:var(--text);font-weight:600}
+.goal-target{color:var(--muted)}
+.goal-bar{height:7px;background:var(--border2);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.goal-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease;background:var(--accent)}
+.goal-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.goal-pct{font-weight:600}
+/* ANNUAL PLANNER */
+.annual-year-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.annual-year-label{font-size:16px;font-weight:700;color:var(--text)}
+.annual-year-nav{display:flex;gap:6px}
+.annual-year-btn{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 12px;color:var(--text);font-size:13px;cursor:pointer}
+.annual-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.annual-month-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:10px 12px;position:relative}
+.annual-month-card.current-month{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.annual-month-card.no-data{opacity:0.45}
+.annual-month-name{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.annual-month-card.current-month .annual-month-name{color:var(--accent)}
+.annual-kv{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;font-family:'IBM Plex Mono',monospace}
+.annual-kv-key{color:var(--muted)}
+.annual-kv-val{color:var(--text);font-weight:600}
+.annual-rate-pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:5px}
+.annual-summary{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-top:14px}
+.annual-summary-row{display:flex;justify-content:space-between;font-size:12px;font-family:'IBM Plex Mono',monospace;margin-bottom:5px}
+.annual-summary-row:last-child{margin-bottom:0;padding-top:6px;border-top:1px solid var(--border2);font-weight:700}
 .neg{color:var(--red)!important}.pos{color:var(--green)!important}
 /* CHARTS */
 .chart-wrap{padding:16px}
@@ -802,6 +835,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div class="dash-sub-tab active" onclick="switchDashTab('monthly',this)">📅 Monthly</div>
     <div class="dash-sub-tab" onclick="switchDashTab('grand',this)">🌍 Grand Total</div>
     <div class="dash-sub-tab" onclick="switchDashTab('health',this)">💚 Health</div>
+    <div class="dash-sub-tab" onclick="switchDashTab('annual',this)">📆 Annual</div>
   </div>
   <div id="dashMonthly">
     <div class="dash-month-tabs" id="dashMonthTabs"></div>
@@ -886,6 +920,18 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div id="healthMetrics"></div>
     <div class="section-title" style="margin-top:16px">Key Insights</div>
     <div id="healthRecs"></div>
+  </div>
+
+  <div id="dashAnnual" style="display:none">
+    <div class="annual-year-hdr">
+      <div class="annual-year-label" id="annualYearLabel">2026</div>
+      <div class="annual-year-nav">
+        <button class="annual-year-btn" onclick="shiftAnnualYear(-1)">‹</button>
+        <button class="annual-year-btn" onclick="shiftAnnualYear(1)">›</button>
+      </div>
+    </div>
+    <div class="annual-grid" id="annualGrid"></div>
+    <div class="annual-summary" id="annualSummary"></div>
   </div>
 </div>
 </div>
@@ -984,7 +1030,50 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div style="font-size:28px">🔁</div>
     <div class="add-box-card-text">+ Add Recurring Expense</div>
   </div>
+
+  <div class="section-title" style="margin-top:24px">🎯 Financial Goals</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Track savings targets, debt payoff, or any financial milestone.</div>
+  <div id="goalsList"></div>
+  <div class="add-box-card" onclick="openGoalModal()" id="addGoalCard">
+    <div style="font-size:28px">🎯</div>
+    <div class="add-box-card-text">+ Add Goal</div>
+  </div>
 </div>
+</div>
+
+<!-- GOAL MODAL -->
+<div class="modal-overlay" id="goalModal" onclick="closeGoalModal(event)">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" id="goalModalTitle">🎯 New Goal <button class="modal-close" onclick="closeGoalModal()">✕</button></div>
+    <div class="form-row">
+      <label class="form-label">Goal Name</label>
+      <input class="form-input" id="goalName" type="text" placeholder="e.g. Emergency Fund, Vacation, New Car">
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="form-row" style="flex:1">
+        <label class="form-label">Emoji</label>
+        <input class="form-input" id="goalEmoji" type="text" maxlength="2" placeholder="🎯" style="text-align:center;font-size:20px">
+      </div>
+      <div class="form-row" style="flex:2">
+        <label class="form-label">Target Amount (SAR)</label>
+        <input class="form-input" id="goalTarget" type="number" min="0" placeholder="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Amount Saved So Far (SAR)</label>
+      <input class="form-input" id="goalSaved" type="number" min="0" placeholder="0">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Target Date (optional)</label>
+      <input class="form-input" id="goalDeadline" type="month">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" id="goalNotes" type="text" placeholder="Any notes about this goal">
+    </div>
+    <button class="add-expense-btn" onclick="saveGoal()" style="margin-top:8px">💾 Save Goal</button>
+    <input type="hidden" id="goalEditId">
+  </div>
 </div>
 
 <!-- RECURRING EXPENSE MODAL -->
@@ -1331,7 +1420,7 @@ const MAIN_BUDGETS={'Housing':150,'Monthly Needs':1150,'Transportation':720,'Per
 const SUB_BUDGETS={'Internet':0,'Home Maintenance':50,'Cleaning Supplies':50,'Protein food':635,'Food Required Items':100,'Groceries':150,'Laundry':0,'Household Items':85,'Internet Bills':0,'Mobile Bills':180,'Car Petrol':300,'Parking Fees':20,'Car Wash':50,'Haircut / Salon':30,'Skincare':50,'Shopping':500,'Restaurants':150,'Coffee Shops':150,'Entertainment':150,'Weekend Trips':150};
 const SUB_TO_MAIN={'Internet':'Housing','Home Maintenance':'Housing','Cleaning Supplies':'Housing','Protein food':'Monthly Needs','Food Required Items':'Monthly Needs','Groceries':'Monthly Needs','Laundry':'Monthly Needs','Household Items':'Monthly Needs','Internet Bills':'Monthly Needs','Mobile Bills':'Monthly Needs','Car Petrol':'Transportation','Parking Fees':'Transportation','Car Wash':'Transportation','Haircut / Salon':'Personal Care','Skincare':'Personal Care','Shopping':'Welfare','Restaurants':'Welfare','Coffee Shops':'Welfare','Entertainment':'Welfare','Weekend Trips':'Welfare'};
 
-let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false};
+let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=new Date().getFullYear();
 
 function loadSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function saveSettings(s){
@@ -1939,7 +2028,7 @@ function showApp(){
   rebuildDropdowns();
   rebuildPayMethodDropdowns();
   applyTabOrder();
-  renderLog();renderDash();renderExport();populateChartFilters();renderBudgetTab();
+  renderLog();renderDash();renderExport();populateChartFilters();renderBudgetTab();renderGoals();
   // Pull latest data from Google Sheets
   if(isGsReady()){
     setSyncStatus('syncing');
@@ -2003,7 +2092,7 @@ function switchTab(tab,el){
   if(tab==='dash')renderDash();
   if(tab==='import'){renderExport();renderImportPreview();}
   if(tab==='charts'){populateChartFilters();renderCharts();}
-  if(tab==='budget')renderBudgetTab();
+  if(tab==='budget'){renderBudgetTab();renderGoals();}
   if(tab==='adminpref'){renderAdminPrefs();renderUserMgmt();renderPayMethodMgmt();}
   if(tab==='boxes')renderBoxes();
   if(tab==='savingboxes')renderSavingBoxes();
@@ -2342,11 +2431,13 @@ function switchDashTab(tab,el){
   document.getElementById('dashMonthly').style.display=tab==='monthly'?'block':'none';
   document.getElementById('dashGrand').style.display=tab==='grand'?'block':'none';
   document.getElementById('dashHealth').style.display=tab==='health'?'block':'none';
+  document.getElementById('dashAnnual').style.display=tab==='annual'?'block':'none';
   renderDash();
 }
 function renderDash(){
   if(activeDashTab==='monthly') renderMonthlyDash();
   else if(activeDashTab==='health') renderHealthDash();
+  else if(activeDashTab==='annual') renderAnnualDash();
   else renderGrandDash();
 }
 
@@ -2663,6 +2754,160 @@ function renderHealthDash(){
 
   document.getElementById('healthRecs').innerHTML=recs.map(r=>`<div class="health-rec" style="--rec-color:${r.color}">${r.text}</div>`).join('');
   applyEyeState();
+}
+
+// ── ANNUAL PLANNER (Phase 4) ───────────────────────────────────
+function shiftAnnualYear(delta){
+  annualYear+=delta;
+  renderAnnualDash();
+}
+function renderAnnualDash(){
+  const allExp=loadExpenses();
+  const currentM=getCurrentMonth();
+  const currentYear=new Date().getFullYear();
+  document.getElementById('annualYearLabel').textContent=annualYear+(annualYear===currentYear?' (This Year)':'');
+
+  const months=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtK=v=>v>=1000?(v/1000).toFixed(1)+'k':Math.round(v).toString();
+
+  let totalSalary=0,totalSpent=0,totalSaved=0,monthsWithData=0;
+
+  const cards=months.map((mm,i)=>{
+    const m=`${annualYear}-${mm}`;
+    const isCurrent=m===currentM;
+    const isFuture=m>currentM;
+    const salary=getSalary(m);
+    const savingBox=getSavingBox(m);
+    const investments=getInvestments(m);
+    const spendable=getSpendable(m);
+    const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+    const hasData=salary>0||spentSP>0;
+
+    if(hasData){
+      totalSalary+=salary;
+      totalSpent+=spentSP;
+      const saved=salary-savingBox-investments-spentSP;
+      if(saved>0) totalSaved+=saved;
+      monthsWithData++;
+    }
+
+    const rate=salary>0?((salary-savingBox-investments-spentSP)/salary*100):null;
+    const rateColor=rate===null?'var(--muted)':rate>=20?'var(--green)':rate>=10?'var(--accent)':rate>=0?'#FBBF24':'var(--red)';
+    const rateBg=rate===null?'rgba(112,112,122,0.15)':rate>=20?'rgba(74,222,128,0.15)':rate>=10?'rgba(200,241,53,0.15)':rate>=0?'rgba(251,191,36,0.15)':'rgba(255,77,77,0.15)';
+    const ratePill=rate!==null?`<span class="annual-rate-pill" style="color:${rateColor};background:${rateBg}">${rate>=0?'+':''}${rate.toFixed(0)}% saved</span>`:'';
+
+    return`<div class="annual-month-card${isCurrent?' current-month':''}${!hasData&&!isCurrent?' no-data':''}">
+      <div class="annual-month-name">${monthNames[i]}${isCurrent?' ← now':''}</div>
+      ${salary?`<div class="annual-kv"><span class="annual-kv-key">Salary</span><span class="annual-kv-val salary-kpi">${fmtK(salary)}</span></div>`:''}
+      ${spendable?`<div class="annual-kv"><span class="annual-kv-key">Budget</span><span class="annual-kv-val salary-kpi">${fmtK(spendable)}</span></div>`:''}
+      ${hasData||isCurrent?`<div class="annual-kv"><span class="annual-kv-key">Spent</span><span class="annual-kv-val salary-kpi" style="color:${spendable&&spentSP>spendable?'var(--red)':'var(--text)'}">${fmtK(spentSP)}</span></div>`:''}
+      ${!hasData&&!isCurrent?`<div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${isFuture?'future':'no data'}</div>`:''}
+      ${ratePill}
+    </div>`;
+  }).join('');
+
+  document.getElementById('annualGrid').innerHTML=cards;
+
+  const avgRate=monthsWithData>0&&totalSalary>0?((totalSalary-totalSpent)/totalSalary*100):null;
+  document.getElementById('annualSummary').innerHTML=`
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">${annualYear} Summary · ${monthsWithData} month${monthsWithData!==1?'s':''} of data</div>
+    <div class="annual-summary-row"><span style="color:var(--muted)">Total Income</span><span class="salary-kpi">${fmt(totalSalary)} SAR</span></div>
+    <div class="annual-summary-row"><span style="color:var(--muted)">Total Spent (Spendable)</span><span class="salary-kpi">${fmt(totalSpent)} SAR</span></div>
+    <div class="annual-summary-row"><span style="color:var(--muted)">Avg Savings Rate</span><span style="color:${avgRate===null?'var(--muted)':avgRate>=20?'var(--green)':avgRate>=10?'var(--accent)':'var(--red)'}">${avgRate!==null?avgRate.toFixed(1)+'%':'—'}</span></div>
+  `;
+  applyEyeState();
+}
+
+// ── GOALS CENTER (Phase 4) ─────────────────────────────────────
+const GOALS_KEY='ksa_goals';
+function loadGoals(){try{return JSON.parse(localStorage.getItem(GOALS_KEY))||[];}catch(e){return[];}}
+function saveGoals(g){localStorage.setItem(GOALS_KEY,JSON.stringify(g));}
+
+function renderGoals(){
+  const goals=loadGoals();
+  const el=document.getElementById('goalsList');
+  if(!el)return;
+  if(!goals.length){el.innerHTML='';return;}
+  el.innerHTML=goals.map(g=>{
+    const pct=g.target>0?Math.min(100,Math.round((g.saved/g.target)*100)):0;
+    const remaining=Math.max(0,g.target-g.saved);
+    const barColor=pct>=100?'var(--green)':pct>=60?'var(--accent)':pct>=30?'#FBBF24':'var(--blue)';
+    const deadlineStr=g.deadline?` · Due ${formatMonth(g.deadline)}`:'';
+    return`<div class="goal-card">
+      <div class="goal-card-header">
+        <div class="goal-emoji">${g.emoji||'🎯'}</div>
+        <div class="goal-name">${g.name}</div>
+        <div class="goal-actions">
+          <button class="goal-action-btn" onclick="openGoalModal('${g.id}')">✏️</button>
+          <button class="goal-action-btn" onclick="deleteGoal('${g.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="goal-amounts">
+        <span class="goal-saved salary-kpi">${fmt(g.saved)} SAR saved</span>
+        <span class="goal-target salary-kpi">of ${fmt(g.target)} SAR</span>
+      </div>
+      <div class="goal-bar"><div class="goal-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      <div class="goal-meta">
+        <span class="goal-pct" style="color:${barColor}">${pct}% complete</span>
+        <span>${pct<100?fmt(remaining)+' SAR to go'+deadlineStr:'🎉 Achieved!'+deadlineStr}</span>
+      </div>
+      ${g.notes?`<div style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'IBM Plex Mono',monospace">${g.notes}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openGoalModal(id){
+  document.getElementById('goalEditId').value=id||'';
+  if(id){
+    const g=loadGoals().find(x=>x.id===id);
+    if(!g)return;
+    document.getElementById('goalModalTitle').innerHTML=`✏️ Edit Goal <button class="modal-close" onclick="closeGoalModal()">✕</button>`;
+    document.getElementById('goalName').value=g.name||'';
+    document.getElementById('goalEmoji').value=g.emoji||'🎯';
+    document.getElementById('goalTarget').value=g.target||0;
+    document.getElementById('goalSaved').value=g.saved||0;
+    document.getElementById('goalDeadline').value=g.deadline||'';
+    document.getElementById('goalNotes').value=g.notes||'';
+  } else {
+    document.getElementById('goalModalTitle').innerHTML=`🎯 New Goal <button class="modal-close" onclick="closeGoalModal()">✕</button>`;
+    document.getElementById('goalName').value='';
+    document.getElementById('goalEmoji').value='🎯';
+    document.getElementById('goalTarget').value='';
+    document.getElementById('goalSaved').value='';
+    document.getElementById('goalDeadline').value='';
+    document.getElementById('goalNotes').value='';
+  }
+  document.getElementById('goalModal').classList.add('open');
+}
+function closeGoalModal(e){
+  if(e&&e.target!==document.getElementById('goalModal'))return;
+  document.getElementById('goalModal').classList.remove('open');
+}
+function saveGoal(){
+  const name=document.getElementById('goalName').value.trim();
+  if(!name){alert('Please enter a goal name.');return;}
+  const target=parseFloat(document.getElementById('goalTarget').value)||0;
+  const saved=parseFloat(document.getElementById('goalSaved').value)||0;
+  const emoji=document.getElementById('goalEmoji').value.trim()||'🎯';
+  const deadline=document.getElementById('goalDeadline').value||'';
+  const notes=document.getElementById('goalNotes').value.trim();
+  const editId=document.getElementById('goalEditId').value;
+  const goals=loadGoals();
+  if(editId){
+    const idx=goals.findIndex(g=>g.id===editId);
+    if(idx>=0) goals[idx]={...goals[idx],name,target,saved,emoji,deadline,notes};
+  } else {
+    goals.push({id:Date.now().toString(),name,target,saved,emoji,deadline,notes});
+  }
+  saveGoals(goals);
+  closeGoalModal();
+  renderGoals();
+}
+function deleteGoal(id){
+  if(!confirm('Delete this goal?'))return;
+  saveGoals(loadGoals().filter(g=>g.id!==id));
+  renderGoals();
 }
 
 // CHARTS - Feature 6
