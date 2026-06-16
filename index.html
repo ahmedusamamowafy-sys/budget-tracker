@@ -23,15 +23,13 @@
   --shadow-lg:0 20px 50px rgba(0,0,0,0.50);
   --glass:rgba(30,30,34,0.6);
   --glass-border:rgba(255,255,255,0.07);
+  --body-bg-image:radial-gradient(circle at 12% -8%, rgba(200,241,53,0.12) 0%, transparent 42%),radial-gradient(circle at 112% 18%, rgba(96,165,250,0.10) 0%, transparent 38%),radial-gradient(circle at 50% 115%, rgba(167,139,250,0.09) 0%, transparent 45%);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;overflow-x:hidden}
 body{
   background-color:var(--bg);
-  background-image:
-    radial-gradient(circle at 12% -8%, rgba(200,241,53,0.12) 0%, transparent 42%),
-    radial-gradient(circle at 112% 18%, rgba(96,165,250,0.10) 0%, transparent 38%),
-    radial-gradient(circle at 50% 115%, rgba(167,139,250,0.09) 0%, transparent 45%);
+  background-image:var(--body-bg-image);
   background-attachment:fixed,fixed,fixed;
   background-repeat:no-repeat;
 }
@@ -467,6 +465,25 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 
 /* Progress bars: smoother easing + faint glow */
 .progress-fill,.box-progress-fill{box-shadow:0 0 10px rgba(255,255,255,0.08) inset;transition:width 0.7s cubic-bezier(.22,.61,.36,1)}
+/* THEME MODAL */
+.theme-modal-inner{max-height:82vh;overflow-y:auto;padding-bottom:8px}
+.theme-mode-bar{display:flex;background:var(--surface);border:1px solid var(--border2);border-radius:30px;padding:3px;margin-bottom:16px;gap:3px}
+.theme-mode-btn{flex:1;padding:8px;border:none;border-radius:26px;font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted)}
+.theme-mode-btn.active{background:var(--accent);color:#0D0D0F}
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.theme-swatch{border:2px solid var(--border2);border-radius:var(--r2);padding:12px 10px;cursor:pointer;transition:all 0.2s;position:relative;background:var(--card)}
+.theme-swatch.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.theme-swatch-bar{height:28px;border-radius:8px;margin-bottom:8px;display:flex;gap:3px;overflow:hidden}
+.theme-swatch-seg{flex:1;border-radius:4px}
+.theme-swatch-name{font-size:11px;font-weight:700;color:var(--text);font-family:'IBM Plex Mono',monospace;text-align:center}
+.theme-check{position:absolute;top:6px;right:8px;font-size:14px;opacity:0}
+.theme-swatch.selected .theme-check{opacity:1}
+.custom-pickers{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:14px;margin-bottom:16px;display:none}
+.custom-pickers.visible{display:block}
+.custom-picker-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.picker-row{display:flex;flex-direction:column;gap:5px}
+.picker-label{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.5px}
+.picker-input{width:100%;height:36px;border:1px solid var(--border2);border-radius:8px;cursor:pointer;padding:2px;background:var(--card)}
 </style>
 </head>
 <body>
@@ -1247,6 +1264,10 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 <div class="admin-wrap">
   <div class="admin-section-title">⚙️ Admin Preferences</div>
 
+  <div class="admin-section-title" style="margin-top:4px">🎨 Appearance</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Choose a color theme and day/night mode for the app.</div>
+  <button class="submit-btn" onclick="openThemeModal()" style="margin-bottom:24px">🎨 Change Color Theme</button>
+
   <div class="admin-section-title" style="margin-top:4px">💰 Salary Settings</div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Used for the Salary Countdown & Cash Flow Forecast on the Dashboard.</div>
   <div class="form-row" style="max-width:240px">
@@ -1274,6 +1295,36 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div id="adminUserCards"></div>
   <button class="submit-btn" onclick="saveAdminPrefs()" style="margin-top:8px">💾 Save Changes</button>
 </div>
+</div>
+
+<!-- THEME MODAL -->
+<div class="modal-overlay" id="themeModal" onclick="closeThemeModal(event)">
+  <div class="modal" style="max-width:390px">
+    <div class="modal-title">
+      <span>🎨 Color Theme</span>
+      <button class="modal-close" onclick="closeThemeModal()">✕</button>
+    </div>
+    <div class="theme-modal-inner">
+      <div class="theme-mode-bar">
+        <button class="theme-mode-btn active" id="tmNight" onclick="setThemeMode('night')">🌙 Night</button>
+        <button class="theme-mode-btn" id="tmDay" onclick="setThemeMode('day')">☀️ Day</button>
+      </div>
+      <div class="theme-grid" id="themeGrid"></div>
+      <div class="custom-pickers" id="customPickers">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;font-family:'IBM Plex Mono',monospace">Custom Colors</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:10px">Pick any colors to create your own theme</div>
+        <div class="custom-picker-grid">
+          <div class="picker-row"><span class="picker-label">Background</span><input class="picker-input" type="color" id="cpBg" oninput="previewCustom()"></div>
+          <div class="picker-row"><span class="picker-label">Surface / Card</span><input class="picker-input" type="color" id="cpCard" oninput="previewCustom()"></div>
+          <div class="picker-row"><span class="picker-label">Text</span><input class="picker-input" type="color" id="cpText" oninput="previewCustom()"></div>
+          <div class="picker-row"><span class="picker-label">Muted Text</span><input class="picker-input" type="color" id="cpMuted" oninput="previewCustom()"></div>
+          <div class="picker-row"><span class="picker-label">Accent Color</span><input class="picker-input" type="color" id="cpAccent" oninput="previewCustom()"></div>
+          <div class="picker-row"><span class="picker-label">Border</span><input class="picker-input" type="color" id="cpBorder" oninput="previewCustom()"></div>
+        </div>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="applyAndSaveTheme()">✓ Apply Theme</button>
+  </div>
 </div>
 
 <!-- USER MODAL -->
@@ -1489,7 +1540,7 @@ const MAIN_BUDGETS={'Housing':150,'Monthly Needs':1150,'Transportation':720,'Per
 const SUB_BUDGETS={'Internet':0,'Home Maintenance':50,'Cleaning Supplies':50,'Protein food':635,'Food Required Items':100,'Groceries':150,'Laundry':0,'Household Items':85,'Internet Bills':0,'Mobile Bills':180,'Car Petrol':300,'Parking Fees':20,'Car Wash':50,'Haircut / Salon':30,'Skincare':50,'Shopping':500,'Restaurants':150,'Coffee Shops':150,'Entertainment':150,'Weekend Trips':150};
 const SUB_TO_MAIN={'Internet':'Housing','Home Maintenance':'Housing','Cleaning Supplies':'Housing','Protein food':'Monthly Needs','Food Required Items':'Monthly Needs','Groceries':'Monthly Needs','Laundry':'Monthly Needs','Household Items':'Monthly Needs','Internet Bills':'Monthly Needs','Mobile Bills':'Monthly Needs','Car Petrol':'Transportation','Parking Fees':'Transportation','Car Wash':'Transportation','Haircut / Salon':'Personal Care','Skincare':'Personal Care','Shopping':'Welfare','Restaurants':'Welfare','Coffee Shops':'Welfare','Entertainment':'Welfare','Weekend Trips':'Welfare'};
 
-let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=new Date().getFullYear(),logSearchQ='';
+let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=2026,logSearchQ='';
 
 function loadSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function saveSettings(s){
@@ -2049,6 +2100,7 @@ function installApp(){
   }
 }
 document.addEventListener('DOMContentLoaded',()=>{
+  initTheme();
   // Pre-fill script code block in setup screen
   const sb = document.getElementById('gsScriptBlock');
   if(sb) sb.textContent = GS_SCRIPT_CODE;
@@ -2841,8 +2893,11 @@ function renderAnnualDash(){
   const currentYear=new Date().getFullYear();
   document.getElementById('annualYearLabel').textContent=annualYear+(annualYear===currentYear?' (This Year)':'');
 
-  const months=['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const allMonths=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const allMonthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const startIdx=annualYear===2026?5:0;
+  const months=allMonths.slice(startIdx);
+  const monthNames=allMonthNames.slice(startIdx);
   const fmtK=v=>v>=1000?(v/1000).toFixed(1)+'k':Math.round(v).toString();
 
   let totalSalary=0,totalSpent=0,totalSaved=0,monthsWithData=0;
@@ -3097,6 +3152,68 @@ function renderInsightsDash(){
   applyEyeState();
 }
 
+// ── COLOR THEME SYSTEM ────────────────────────────────────────
+const THEME_KEY='budget_theme_v1';
+const THEMES_DATA={
+  'dark-lime':{name:'Dark Lime',emoji:'🟢',
+    night:{'--bg':'#0A0A0D','--surface':'#161618','--card':'#1E1E22','--border':'#2A2A30','--border2':'#353540','--text':'#F0F0F5','--muted':'#70707A','--accent':'#C8F135','--accent2':'#A8D020','--gradient-accent':'linear-gradient(135deg,#D7FF5C 0%,#C8F135 45%,#9FE03A 100%)','--glow-accent':'0 0 24px rgba(200,241,53,0.22)','--saving-bg':'#1A1A2E','--spend-bg':'#0F2E1A','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(200,241,53,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(96,165,250,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(167,139,250,0.09) 0%,transparent 45%)'},
+    day:{'--bg':'#F8FAF0','--surface':'#ECEFDF','--card':'#FFFFFF','--border':'#D4DAC0','--border2':'#C0C8A5','--text':'#0D0D0F','--muted':'#555558','--accent':'#8BC400','--accent2':'#6E9A00','--gradient-accent':'linear-gradient(135deg,#A8E000 0%,#8BC400 45%,#6E9A00 100%)','--glow-accent':'0 0 24px rgba(139,196,0,0.30)','--saving-bg':'#E8F5E0','--spend-bg':'#FFF5E0','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(139,196,0,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(96,165,250,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(167,139,250,0.07) 0%,transparent 45%)'}
+  },
+  'ocean':{name:'Ocean Depth',emoji:'🌊',
+    night:{'--bg':'#040D1A','--surface':'#091628','--card':'#0E1F38','--border':'#162D4E','--border2':'#1E3D66','--text':'#E8F4FF','--muted':'#5A8090','--accent':'#00BFFF','--accent2':'#0090CC','--gradient-accent':'linear-gradient(135deg,#40D0FF 0%,#00BFFF 45%,#0090CC 100%)','--glow-accent':'0 0 24px rgba(0,191,255,0.25)','--saving-bg':'#0A1A2E','--spend-bg':'#041820','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(0,191,255,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(0,144,204,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(64,208,255,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#E8F4FF','--surface':'#D4E8FF','--card':'#FFFFFF','--border':'#A8C8E8','--border2':'#88A8CC','--text':'#040D1A','--muted':'#3D6080','--accent':'#00A8E0','--accent2':'#0080B0','--gradient-accent':'linear-gradient(135deg,#30C0F0 0%,#00A8E0 45%,#0080B0 100%)','--glow-accent':'0 0 24px rgba(0,168,224,0.30)','--saving-bg':'#D8EEFF','--spend-bg':'#FFF8E0','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(0,168,224,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(0,128,176,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(48,192,240,0.07) 0%,transparent 45%)'}
+  },
+  'rose':{name:'Rose Quartz',emoji:'🌸',
+    night:{'--bg':'#12080A','--surface':'#1E1010','--card':'#261518','--border':'#3A2025','--border2':'#4E2A30','--text':'#FFF0F3','--muted':'#906070','--accent':'#FF8FAB','--accent2':'#E0607A','--gradient-accent':'linear-gradient(135deg,#FFB0C8 0%,#FF8FAB 45%,#E0607A 100%)','--glow-accent':'0 0 24px rgba(255,143,171,0.25)','--saving-bg':'#1A0E1A','--spend-bg':'#1A0E10','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(255,143,171,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(224,96,122,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(255,176,200,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#FFF0F5','--surface':'#FFE0EA','--card':'#FFFFFF','--border':'#F0C0D0','--border2':'#E0A0B8','--text':'#120810','--muted':'#806070','--accent':'#FF5580','--accent2':'#E03060','--gradient-accent':'linear-gradient(135deg,#FF7090 0%,#FF5580 45%,#E03060 100%)','--glow-accent':'0 0 24px rgba(255,85,128,0.30)','--saving-bg':'#FFE8F5','--spend-bg':'#FFF5E8','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(255,85,128,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(224,48,96,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(255,112,144,0.07) 0%,transparent 45%)'}
+  },
+  'twilight':{name:'Twilight',emoji:'🔮',
+    night:{'--bg':'#0A0810','--surface':'#13101E','--card':'#1B162A','--border':'#2D2145','--border2':'#3D2E5E','--text':'#F0EEFF','--muted':'#7060A0','--accent':'#A78BFA','--accent2':'#8060E0','--gradient-accent':'linear-gradient(135deg,#C0A8FF 0%,#A78BFA 45%,#8060E0 100%)','--glow-accent':'0 0 24px rgba(167,139,250,0.25)','--saving-bg':'#1A1430','--spend-bg':'#140E28','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(167,139,250,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(128,96,224,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(192,168,255,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#F5F0FF','--surface':'#EAE0FF','--card':'#FFFFFF','--border':'#C8B0F0','--border2':'#A890D8','--text':'#0A0810','--muted':'#5040A0','--accent':'#7C3AED','--accent2':'#6020CC','--gradient-accent':'linear-gradient(135deg,#9060FF 0%,#7C3AED 45%,#6020CC 100%)','--glow-accent':'0 0 24px rgba(124,58,237,0.30)','--saving-bg':'#EAE0FF','--spend-bg':'#FFF0E8','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(124,58,237,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(96,32,204,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(144,96,255,0.07) 0%,transparent 45%)'}
+  },
+  'emerald':{name:'Emerald',emoji:'💚',
+    night:{'--bg':'#050F08','--surface':'#091A0E','--card':'#0D2213','--border':'#153020','--border2':'#1E4028','--text':'#EDFFF2','--muted':'#507060','--accent':'#4ADE80','--accent2':'#28BE60','--gradient-accent':'linear-gradient(135deg,#70F0A0 0%,#4ADE80 45%,#28BE60 100%)','--glow-accent':'0 0 24px rgba(74,222,128,0.22)','--saving-bg':'#0A2015','--spend-bg':'#050F08','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(74,222,128,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(40,190,96,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(112,240,160,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#ECFDF5','--surface':'#D1FAE5','--card':'#FFFFFF','--border':'#A7F3D0','--border2':'#6EE7B7','--text':'#050F08','--muted':'#2D7060','--accent':'#10B981','--accent2':'#059669','--gradient-accent':'linear-gradient(135deg,#34D399 0%,#10B981 45%,#059669 100%)','--glow-accent':'0 0 24px rgba(16,185,129,0.30)','--saving-bg':'#D1FAE5','--spend-bg':'#FFFBEB','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(16,185,129,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(5,150,105,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(52,211,153,0.07) 0%,transparent 45%)'}
+  },
+  'golden':{name:'Golden Hour',emoji:'✨',
+    night:{'--bg':'#0F0A00','--surface':'#1A1200','--card':'#22190A','--border':'#3A2E10','--border2':'#4E3E18','--text':'#FFF8E8','--muted':'#908050','--accent':'#F59E0B','--accent2':'#D97706','--gradient-accent':'linear-gradient(135deg,#FCD34D 0%,#F59E0B 45%,#D97706 100%)','--glow-accent':'0 0 24px rgba(245,158,11,0.25)','--saving-bg':'#1A1500','--spend-bg':'#100A00','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(245,158,11,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(217,119,6,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(252,211,77,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#FFFBEB','--surface':'#FEF3C7','--card':'#FFFFFF','--border':'#FDE68A','--border2':'#FCD34D','--text':'#0F0A00','--muted':'#8A6030','--accent':'#D97706','--accent2':'#B45309','--gradient-accent':'linear-gradient(135deg,#F59E0B 0%,#D97706 45%,#B45309 100%)','--glow-accent':'0 0 24px rgba(217,119,6,0.30)','--saving-bg':'#FEF3C7','--spend-bg':'#FFF5E0','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(217,119,6,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(180,83,9,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(245,158,11,0.07) 0%,transparent 45%)'}
+  },
+  'arctic':{name:'Arctic Blue',emoji:'❄️',
+    night:{'--bg':'#08101A','--surface':'#101820','--card':'#161E2E','--border':'#232F45','--border2':'#2E3E5E','--text':'#E8F4FF','--muted':'#5878A0','--accent':'#60A5FA','--accent2':'#3B82F6','--gradient-accent':'linear-gradient(135deg,#93C5FD 0%,#60A5FA 45%,#3B82F6 100%)','--glow-accent':'0 0 24px rgba(96,165,250,0.25)','--saving-bg':'#101A28','--spend-bg':'#081018','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(96,165,250,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(59,130,246,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(147,197,253,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#F0F7FF','--surface':'#E0EEFF','--card':'#FFFFFF','--border':'#BFDBFE','--border2':'#93C5FD','--text':'#08101A','--muted':'#3058A0','--accent':'#2563EB','--accent2':'#1D4ED8','--gradient-accent':'linear-gradient(135deg,#60A5FA 0%,#2563EB 45%,#1D4ED8 100%)','--glow-accent':'0 0 24px rgba(37,99,235,0.30)','--saving-bg':'#E0EEFF','--spend-bg':'#FFF5E0','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(37,99,235,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(29,78,216,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(96,165,250,0.07) 0%,transparent 45%)'}
+  },
+  'crimson':{name:'Crimson',emoji:'🔴',
+    night:{'--bg':'#0F0508','--surface':'#1A080C','--card':'#220C12','--border':'#3A1520','--border2':'#4E1D28','--text':'#FFF0F2','--muted':'#905060','--accent':'#FF4D6D','--accent2':'#E0203A','--gradient-accent':'linear-gradient(135deg,#FF7090 0%,#FF4D6D 45%,#E0203A 100%)','--glow-accent':'0 0 24px rgba(255,77,109,0.25)','--saving-bg':'#1A0A10','--spend-bg':'#120508','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(255,77,109,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(224,32,58,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(255,112,144,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#FFF0F2','--surface':'#FFE0E5','--card':'#FFFFFF','--border':'#FFC0CA','--border2':'#FF9AAA','--text':'#0F0508','--muted':'#805060','--accent':'#E8203A','--accent2':'#CC0025','--gradient-accent':'linear-gradient(135deg,#FF5070 0%,#E8203A 45%,#CC0025 100%)','--glow-accent':'0 0 24px rgba(232,32,58,0.30)','--saving-bg':'#FFE0E5','--spend-bg':'#FFF8E0','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(232,32,58,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(204,0,37,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(255,80,112,0.07) 0%,transparent 45%)'}
+  },
+  'copper':{name:'Copper Bronze',emoji:'🟤',
+    night:{'--bg':'#0F0A06','--surface':'#1A1208','--card':'#22190A','--border':'#3A2E18','--border2':'#4E3E22','--text':'#FFF5E8','--muted':'#906040','--accent':'#E07B39','--accent2':'#C05A20','--gradient-accent':'linear-gradient(135deg,#F0A060 0%,#E07B39 45%,#C05A20 100%)','--glow-accent':'0 0 24px rgba(224,123,57,0.25)','--saving-bg':'#1A1208','--spend-bg':'#120A05','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(224,123,57,0.12) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(192,90,32,0.10) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(240,160,96,0.08) 0%,transparent 45%)'},
+    day:{'--bg':'#FFF5E8','--surface':'#FFE8D0','--card':'#FFFFFF','--border':'#F5C8A0','--border2':'#E8A870','--text':'#0F0A06','--muted':'#805040','--accent':'#C86020','--accent2':'#A04810','--gradient-accent':'linear-gradient(135deg,#E07840 0%,#C86020 45%,#A04810 100%)','--glow-accent':'0 0 24px rgba(200,96,32,0.30)','--saving-bg':'#FFE8D0','--spend-bg':'#FFF8E8','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(200,96,32,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(160,72,16,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(224,120,64,0.07) 0%,transparent 45%)'}
+  },
+  'slate':{name:'Slate',emoji:'🪨',
+    night:{'--bg':'#08090E','--surface':'#10121A','--card':'#171B26','--border':'#222838','--border2':'#2E3548','--text':'#E8ECF5','--muted':'#6878A0','--accent':'#94A3B8','--accent2':'#7888A0','--gradient-accent':'linear-gradient(135deg,#B8C8D8 0%,#94A3B8 45%,#7888A0 100%)','--glow-accent':'0 0 24px rgba(148,163,184,0.22)','--saving-bg':'#101828','--spend-bg':'#0A0E18','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(148,163,184,0.10) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(120,136,160,0.08) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(184,200,216,0.07) 0%,transparent 45%)'},
+    day:{'--bg':'#F1F5F9','--surface':'#E2E8F0','--card':'#FFFFFF','--border':'#CBD5E1','--border2':'#94A3B8','--text':'#08090E','--muted':'#476080','--accent':'#475569','--accent2':'#334155','--gradient-accent':'linear-gradient(135deg,#64748B 0%,#475569 45%,#334155 100%)','--glow-accent':'0 0 24px rgba(71,85,105,0.25)','--saving-bg':'#E2E8F0','--spend-bg':'#FAF9F7','--body-bg-image':'radial-gradient(circle at 12% -8%,rgba(71,85,105,0.08) 0%,transparent 42%),radial-gradient(circle at 112% 18%,rgba(51,65,85,0.06) 0%,transparent 38%),radial-gradient(circle at 50% 115%,rgba(100,116,139,0.05) 0%,transparent 45%)'}
+  },
+  'custom':{name:'Custom',emoji:'🎨',night:{},day:{}}
+};
+let _themeState={themeId:'dark-lime',mode:'night',customNight:{},customDay:{}};
+let _themePending={themeId:'dark-lime',mode:'night'};
+function loadThemeState(){try{const s=JSON.parse(localStorage.getItem(THEME_KEY));if(s&&s.themeId)return s;}catch(e){}return{themeId:'dark-lime',mode:'night',customNight:{},customDay:{}};}
+function initTheme(){_themeState=loadThemeState();applyThemeVars(_themeState.themeId,_themeState.mode,_themeState.customNight,_themeState.customDay);}
+function applyThemeVars(themeId,mode,customNight,customDay){const root=document.documentElement;let vars=THEMES_DATA[themeId]?.[mode]||{};if(themeId==='custom'){const custom=mode==='night'?(customNight||{}):(customDay||{});vars=buildCustomVars(custom);}Object.entries(vars).forEach(([k,v])=>root.style.setProperty(k,v));}
+function buildCustomVars(c){const bg=c['--bg']||'#0A0A0D';const card=c['--card']||'#1E1E22';const text=c['--text']||'#F0F0F5';const muted=c['--muted']||'#70707A';const accent=c['--accent']||'#C8F135';const border=c['--border']||'#2A2A30';return{'--bg':bg,'--surface':lightenDarken(bg,8),'--card':card,'--border':border,'--border2':lightenDarken(border,8),'--text':text,'--muted':muted,'--accent':accent,'--accent2':lightenDarken(accent,-16),'--gradient-accent':'linear-gradient(135deg,'+lightenDarken(accent,20)+' 0%,'+accent+' 45%,'+lightenDarken(accent,-20)+' 100%)','--glow-accent':'0 0 24px '+hexToRgba(accent,0.25),'--saving-bg':lightenDarken(bg,6),'--spend-bg':bg,'--body-bg-image':'radial-gradient(circle at 12% -8%,'+hexToRgba(accent,0.10)+' 0%,transparent 42%),radial-gradient(circle at 112% 18%,'+hexToRgba(accent,0.08)+' 0%,transparent 38%),radial-gradient(circle at 50% 115%,'+hexToRgba(accent,0.06)+' 0%,transparent 45%)'};}
+function hexToRgba(hex,alpha){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return'rgba('+r+','+g+','+b+','+alpha+')';}
+function lightenDarken(hex,amount){let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);r=Math.min(255,Math.max(0,r+amount));g=Math.min(255,Math.max(0,g+amount));b=Math.min(255,Math.max(0,b+amount));return'#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');}
+function openThemeModal(){_themePending={themeId:_themeState.themeId,mode:_themeState.mode};buildThemeModal();document.getElementById('themeModal').classList.add('open');}
+function closeThemeModal(e){if(e&&e.target!==document.getElementById('themeModal'))return;document.getElementById('themeModal').classList.remove('open');applyThemeVars(_themeState.themeId,_themeState.mode,_themeState.customNight,_themeState.customDay);}
+function setThemeMode(mode){_themePending.mode=mode;document.getElementById('tmNight').classList.toggle('active',mode==='night');document.getElementById('tmDay').classList.toggle('active',mode==='day');buildThemeSwatches();previewSelected();}
+function buildThemeModal(){const mode=_themePending.mode;document.getElementById('tmNight').classList.toggle('active',mode==='night');document.getElementById('tmDay').classList.toggle('active',mode==='day');buildThemeSwatches();const cn=_themeState.customNight||{};const cd=_themeState.customDay||{};const c=_themePending.mode==='night'?cn:cd;document.getElementById('cpBg').value=c['--bg']||'#0A0A0D';document.getElementById('cpCard').value=c['--card']||'#1E1E22';document.getElementById('cpText').value=c['--text']||'#F0F0F5';document.getElementById('cpMuted').value=c['--muted']||'#70707A';document.getElementById('cpAccent').value=c['--accent']||'#C8F135';document.getElementById('cpBorder').value=c['--border']||'#2A2A30';document.getElementById('customPickers').classList.toggle('visible',_themePending.themeId==='custom');}
+function buildThemeSwatches(){const grid=document.getElementById('themeGrid');grid.innerHTML=Object.entries(THEMES_DATA).map(([id,t])=>{const vars=id==='custom'?((_themePending.mode==='night'?_themeState.customNight:_themeState.customDay)||{}):(t[_themePending.mode]||t.night);const bg=vars['--bg']||'#111';const card=vars['--card']||'#222';const accent=vars['--accent']||'#888';const isSelected=_themePending.themeId===id;return'<div class="theme-swatch'+(isSelected?' selected':'')+'" onclick="selectThemeSwatch(''+id+'')">'+'<div class="theme-swatch-bar" style="background:'+bg+'">'+'<div class="theme-swatch-seg" style="background:'+card+'"></div>'+'<div class="theme-swatch-seg" style="background:'+accent+'"></div>'+'<div class="theme-swatch-seg" style="background:'+bg+'"></div>'+'</div>'+'<div class="theme-swatch-name">'+t.emoji+' '+t.name+'</div>'+'<span class="theme-check">✓</span>'+'</div>';}).join('');}
+function selectThemeSwatch(id){_themePending.themeId=id;buildThemeSwatches();document.getElementById('customPickers').classList.toggle('visible',id==='custom');previewSelected();}
+function previewSelected(){applyThemeVars(_themePending.themeId,_themePending.mode,_themeState.customNight,_themeState.customDay);}
+function previewCustom(){if(_themePending.themeId!=='custom')return;const c={'--bg':document.getElementById('cpBg').value,'--card':document.getElementById('cpCard').value,'--text':document.getElementById('cpText').value,'--muted':document.getElementById('cpMuted').value,'--accent':document.getElementById('cpAccent').value,'--border':document.getElementById('cpBorder').value};const vars=buildCustomVars(c);const root=document.documentElement;Object.entries(vars).forEach(([k,v])=>root.style.setProperty(k,v));}
+function applyAndSaveTheme(){let cn=_themeState.customNight||{},cd=_themeState.customDay||{};if(_themePending.themeId==='custom'){const c={'--bg':document.getElementById('cpBg').value,'--card':document.getElementById('cpCard').value,'--text':document.getElementById('cpText').value,'--muted':document.getElementById('cpMuted').value,'--accent':document.getElementById('cpAccent').value,'--border':document.getElementById('cpBorder').value};if(_themePending.mode==='night')cn=c;else cd=c;}_themeState={themeId:_themePending.themeId,mode:_themePending.mode,customNight:cn,customDay:cd};localStorage.setItem(THEME_KEY,JSON.stringify(_themeState));applyThemeVars(_themeState.themeId,_themeState.mode,cn,cd);document.getElementById('themeModal').classList.remove('open');showToast('🎨 Theme applied!');}
 // ── FAMILY ANALYTICS (Phase 6) ────────────────────────────────
 function renderFamilyDash(){
   const allExp=loadExpenses();
