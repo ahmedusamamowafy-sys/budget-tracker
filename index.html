@@ -326,6 +326,38 @@ body{
 .insight-desc{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;line-height:1.6}
 .insight-val{font-size:13px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:4px}
 .insights-empty{text-align:center;padding:32px 0;color:var(--muted);font-size:13px;font-family:'IBM Plex Mono',monospace}
+/* FAMILY ANALYTICS */
+.family-person-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.family-person-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.family-person-name{font-size:14px;font-weight:700;color:var(--text)}
+.family-person-total{font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--accent)}
+.family-share-bar{height:8px;background:var(--border2);border-radius:4px;overflow:hidden;margin-bottom:12px}
+.family-share-fill{height:100%;border-radius:4px}
+.family-cat-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:5px;font-family:'IBM Plex Mono',monospace}
+.family-cat-name{color:var(--muted);flex:1}
+.family-cat-bar-wrap{width:60px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;margin:0 8px}
+.family-cat-bar-fill{height:100%;border-radius:2px;opacity:0.65}
+.family-cat-val{color:var(--text);font-weight:600;min-width:70px;text-align:right}
+.family-joint-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-top:4px}
+.family-summary-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.family-summary-row:last-child{border-bottom:none}
+/* SEARCH BAR */
+.log-search-wrap{padding:0 16px 10px;position:relative}
+.log-search{width:100%;padding:10px 36px 10px 36px;background:var(--card);border:1px solid var(--border2);border-radius:30px;color:var(--text);font-size:13px;font-family:'IBM Plex Sans Arabic',sans-serif;outline:none;transition:border-color 0.2s}
+.log-search:focus{border-color:var(--accent)}
+.log-search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;color:var(--muted)}
+.log-search-clear{position:absolute;right:28px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px;line-height:1;display:none}
+/* QUICK ADD FAB */
+.fab{position:fixed;bottom:80px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--gradient-accent);border:none;color:#0D0D0F;font-size:24px;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 16px rgba(200,241,53,0.35);display:flex;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.2s;line-height:1}
+.fab:active{transform:scale(0.92);box-shadow:0 2px 8px rgba(200,241,53,0.2)}
+.quick-add-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;display:none;align-items:flex-end}
+.quick-add-overlay.open{display:flex}
+.quick-add-sheet{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;padding:20px 16px calc(env(safe-area-inset-bottom) + 28px);border-top:1px solid var(--border2);animation:slideUp 0.25s cubic-bezier(.22,.61,.36,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.quick-add-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.quick-add-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0}
+.quick-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.quick-add-full{grid-column:1/-1}
 .neg{color:var(--red)!important}.pos{color:var(--green)!important}
 /* CHARTS */
 .chart-wrap{padding:16px}
@@ -599,6 +631,11 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 <div class="page" id="page-log">
   <div class="log-header"><span class="log-title">Expenses</span><div style="display:flex;align-items:center;gap:8px"><button id="saveBtn" onclick="saveAndSync()" style="font-size:12px;padding:5px 14px;border-radius:20px;border:none;background:var(--accent);color:#0D0D0F;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all 0.2s">💾 Save</button><div style="text-align:right"><span class="log-total salary-kpi" id="logTotal">0 SAR</span><div class="salary-kpi" id="logTotalBreakdown" style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px"></div></div></div></div>
   <div class="month-tabs-wrap" id="monthTabs"></div>
+  <div class="log-search-wrap">
+    <span class="log-search-icon">🔍</span>
+    <input class="log-search" id="logSearch" type="text" placeholder="Search transactions…" oninput="onLogSearch(this.value)">
+    <button class="log-search-clear" id="logSearchClear" onclick="clearLogSearch()">✕</button>
+  </div>
   <div id="sortFilterBar" style="padding:0 16px 10px">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">Sort:</span>
@@ -854,6 +891,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div class="dash-sub-tab" onclick="switchDashTab('health',this)">💚 Health</div>
     <div class="dash-sub-tab" onclick="switchDashTab('annual',this)">📆 Annual</div>
     <div class="dash-sub-tab" onclick="switchDashTab('insights',this)">🔍 Insights</div>
+    <div class="dash-sub-tab" onclick="switchDashTab('family',this)">👨‍👩‍👧 Family</div>
   </div>
   <div id="dashMonthly">
     <div class="dash-month-tabs" id="dashMonthTabs"></div>
@@ -959,6 +997,10 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div class="section-title" style="margin-top:20px">💡 Auto Insights</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Patterns and observations from your spending data.</div>
     <div id="insightCards"></div>
+  </div>
+
+  <div id="dashFamily" style="display:none">
+    <div id="familyContent"></div>
   </div>
 </div>
 </div>
@@ -1447,7 +1489,7 @@ const MAIN_BUDGETS={'Housing':150,'Monthly Needs':1150,'Transportation':720,'Per
 const SUB_BUDGETS={'Internet':0,'Home Maintenance':50,'Cleaning Supplies':50,'Protein food':635,'Food Required Items':100,'Groceries':150,'Laundry':0,'Household Items':85,'Internet Bills':0,'Mobile Bills':180,'Car Petrol':300,'Parking Fees':20,'Car Wash':50,'Haircut / Salon':30,'Skincare':50,'Shopping':500,'Restaurants':150,'Coffee Shops':150,'Entertainment':150,'Weekend Trips':150};
 const SUB_TO_MAIN={'Internet':'Housing','Home Maintenance':'Housing','Cleaning Supplies':'Housing','Protein food':'Monthly Needs','Food Required Items':'Monthly Needs','Groceries':'Monthly Needs','Laundry':'Monthly Needs','Household Items':'Monthly Needs','Internet Bills':'Monthly Needs','Mobile Bills':'Monthly Needs','Car Petrol':'Transportation','Parking Fees':'Transportation','Car Wash':'Transportation','Haircut / Salon':'Personal Care','Skincare':'Personal Care','Shopping':'Welfare','Restaurants':'Welfare','Coffee Shops':'Welfare','Entertainment':'Welfare','Weekend Trips':'Welfare'};
 
-let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=new Date().getFullYear();
+let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=new Date().getFullYear() logSearchQ='';
 
 function loadSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function saveSettings(s){
@@ -1570,7 +1612,7 @@ function buildPayMethodOptionsHTML(){
 }
 function rebuildPayMethodDropdowns(){
   const html=buildPayMethodOptionsHTML();
-  ['payMethod','editPay','recurPay'].forEach(id=>{
+  ['payMethod','editPay','recurPay','qaPay'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel) return;
     const v=sel.value;
@@ -2365,6 +2407,7 @@ function renderLog(){
   if(activeFilters.pay) expenses=expenses.filter(e=>e.pay===activeFilters.pay);
   if(activeFilters.main) expenses=expenses.filter(e=>e.main===activeFilters.main);
   if(activeFilters.sub) expenses=expenses.filter(e=>e.sub===activeFilters.sub);
+  if(logSearchQ){const q=logSearchQ.toLowerCase();expenses=expenses.filter(e=>(e.sub||'').toLowerCase().includes(q)||(e.desc||'').toLowerCase().includes(q)||(e.main||'').toLowerCase().includes(q)||(e.pay||'').toLowerCase().includes(q)||String(e.amount).includes(q)||(e.date||'').includes(q));}
   expenses.sort((a,b)=>{
     if(sortField==='amount') return sortDir==='asc'?a.amount-b.amount:b.amount-a.amount;
     const da=new Date(a.date),db=new Date(b.date);
@@ -2460,6 +2503,7 @@ function switchDashTab(tab,el){
   document.getElementById('dashHealth').style.display=tab==='health'?'block':'none';
   document.getElementById('dashAnnual').style.display=tab==='annual'?'block':'none';
   document.getElementById('dashInsights').style.display=tab==='insights'?'block':'none';
+  document.getElementById('dashFamily').style.display=tab==='family'?'block':'none';
   renderDash();
 }
 function renderDash(){
@@ -2467,6 +2511,7 @@ function renderDash(){
   else if(activeDashTab==='health') renderHealthDash();
   else if(activeDashTab==='annual') renderAnnualDash();
   else if(activeDashTab==='insights') renderInsightsDash();
+  else if(activeDashTab==='family') renderFamilyDash();
   else renderGrandDash();
 }
 
@@ -3050,6 +3095,125 @@ function renderInsightsDash(){
       </div>`).join('');
   }
   applyEyeState();
+}
+
+// ── FAMILY ANALYTICS (Phase 6) ────────────────────────────────
+function renderFamilyDash(){
+  const allExp=loadExpenses();
+  const el=document.getElementById('familyContent');
+  if(!el) return;
+  if(!allExp.length){el.innerHTML='<div class="insights-empty">No transactions yet.</div>';return;}
+  const byPerson={};
+  allExp.forEach(e=>{
+    const who=e.addedBy||'Unknown';
+    if(!byPerson[who]) byPerson[who]={total:0,cats:{}};
+    byPerson[who].total+=e.amount;
+    byPerson[who].cats[e.main]=(byPerson[who].cats[e.main]||0)+e.amount;
+  });
+  const grandTotal=allExp.reduce((s,e)=>s+e.amount,0);
+  const people=Object.entries(byPerson).sort((a,b)=>b[1].total-a[1].total);
+  const colors=['#C8F135','#60A5FA','#A78BFA','#4ADE80','#FB923C','#F472B6'];
+  const thisMonth=getCurrentMonth();
+  const thisMonthExp=allExp.filter(e=>e.month===thisMonth);
+  const thisMonthTotal=thisMonthExp.reduce((s,e)=>s+e.amount,0);
+  let html='<div class="section-title">All-Time Breakdown</div>';
+  people.forEach(([name,data],idx)=>{
+    const pct=grandTotal>0?Math.round(data.total/grandTotal*100):0;
+    const color=colors[idx%colors.length];
+    const topCats=Object.entries(data.cats).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    const maxCat=topCats[0]?topCats[0][1]:1;
+    html+=`<div class="family-person-card">
+      <div class="family-person-hdr">
+        <div><div class="family-person-name">${name}</div><div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${pct}% of all spending</div></div>
+        <div style="text-align:right"><div class="family-person-total" style="color:${color}">${fmt(data.total)} SAR</div><div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${allExp.filter(e=>(e.addedBy||'Unknown')===name).length} txns</div></div>
+      </div>
+      <div class="family-share-bar"><div class="family-share-fill" style="width:${pct}%;background:${color}"></div></div>
+      ${topCats.map(([cat,amt])=>{const bp=Math.round(amt/maxCat*100);return`<div class="family-cat-row"><span class="family-cat-name">${CAT_ICONS[cat]||'📦'} ${cat}</span><div class="family-cat-bar-wrap"><div class="family-cat-bar-fill" style="width:${bp}%;background:${color}"></div></div><span class="family-cat-val">${fmt(amt)}</span></div>`;}).join('')}
+    </div>`;
+  });
+  if(thisMonthTotal>0){
+    html+=`<div class="section-title" style="margin-top:20px">This Month (${formatMonth(thisMonth)})</div><div class="family-joint-card">`;
+    people.forEach(([name],idx)=>{
+      const amt=thisMonthExp.filter(e=>(e.addedBy||'Unknown')===name).reduce((s,e)=>s+e.amount,0);
+      const pct=thisMonthTotal>0?Math.round(amt/thisMonthTotal*100):0;
+      html+=`<div class="family-summary-row"><span style="color:${colors[idx%colors.length]};font-weight:600">${name}</span><span>${fmt(amt)} SAR <span style="color:var(--muted);font-size:10px">(${pct}%)</span></span></div>`;
+    });
+    html+=`<div class="family-summary-row" style="margin-top:4px"><span style="font-weight:700">Total</span><span style="font-weight:700">${fmt(thisMonthTotal)} SAR</span></div></div>`;
+  }
+  el.innerHTML=html;
+}
+
+// ── SEARCH (Phase 6) ──────────────────────────────────────────
+function onLogSearch(val){
+  logSearchQ=val.trim();
+  const cb=document.getElementById('logSearchClear');
+  if(cb) cb.style.display=logSearchQ?'block':'none';
+  renderLog();
+}
+function clearLogSearch(){
+  logSearchQ='';
+  const inp=document.getElementById('logSearch');
+  const cb=document.getElementById('logSearchClear');
+  if(inp) inp.value='';
+  if(cb) cb.style.display='none';
+  renderLog();
+}
+
+// ── QUICK ADD FAB (Phase 6) ───────────────────────────────────
+function openQuickAdd(){
+  const overlay=document.getElementById('quickAddOverlay');
+  if(!overlay) return;
+  const d=new Date();
+  const yyyy=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  document.getElementById('qaDate').value=`${yyyy}-${mm}-${dd}`;
+  document.getElementById('qaAmount').value='';
+  document.getElementById('qaDesc').value='';
+  document.getElementById('qaType').value='Spendable';
+  const qaPay=document.getElementById('qaPay');
+  qaPay.innerHTML=loadPaymentMethods().map(m=>`<option value="${m}">${m}</option>`).join('');
+  populateQaMainCat();
+  overlay.classList.add('open');
+  setTimeout(()=>document.getElementById('qaAmount').focus(),300);
+}
+function closeQuickAdd(){
+  const o=document.getElementById('quickAddOverlay');
+  if(o) o.classList.remove('open');
+}
+function closeQuickAddOutside(e){
+  if(e.target===document.getElementById('quickAddOverlay')) closeQuickAdd();
+}
+function populateQaMainCat(){
+  const type=document.getElementById('qaType').value;
+  const mains=[...new Set(ALL_CATEGORIES.filter(c=>c.type===type).map(c=>c.main))];
+  document.getElementById('qaMain').innerHTML=mains.map(m=>`<option value="${m}">${m}</option>`).join('');
+  populateQaSubCat();
+}
+function populateQaSubCat(){
+  const type=document.getElementById('qaType').value;
+  const main=document.getElementById('qaMain').value;
+  const subs=ALL_CATEGORIES.filter(c=>c.type===type&&c.main===main).map(c=>c.sub);
+  document.getElementById('qaSub').innerHTML=subs.map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+function submitQuickAdd(){
+  const amount=parseFloat(document.getElementById('qaAmount').value);
+  const date=document.getElementById('qaDate').value;
+  const type=document.getElementById('qaType').value;
+  const pay=document.getElementById('qaPay').value;
+  const main=document.getElementById('qaMain').value;
+  const sub=document.getElementById('qaSub').value;
+  const desc=document.getElementById('qaDesc').value.trim();
+  if(!amount||amount<=0){showToast('Enter a valid amount');return;}
+  if(!date){showToast('Select a date');return;}
+  if(!sub){showToast('Select a category');return;}
+  const expenses=loadExpenses();
+  const newExp={id:Date.now(),main,sub,type,pay,date,desc,amount,month:date.substring(0,7),addedBy:currentUser?.name||'Unknown',createdAt:new Date().toISOString()};
+  expenses.unshift(newExp);
+  saveExpenses(expenses);
+  gsPush('addExpense',newExp);
+  closeQuickAdd();
+  if(selectedLogMonth===newExp.month) renderLog();
+  renderDash();
+  showToast('Added '+fmt(amount)+' SAR');
 }
 
 // ── GOALS CENTER (Phase 4) ─────────────────────────────────────
@@ -4659,5 +4823,23 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+
+<!-- QUICK ADD FAB -->
+<button class="fab" id="quickAddFab" onclick="openQuickAdd()" title="Quick Add Expense">+</button>
+<div class="quick-add-overlay" id="quickAddOverlay" onclick="closeQuickAddOutside(event)">
+  <div class="quick-add-sheet">
+    <div class="quick-add-title">⚡ Quick Add <button class="quick-add-close" onclick="closeQuickAdd()">&#x2715;</button></div>
+    <div class="quick-add-grid">
+      <div><label class="form-label">Amount (SAR)</label><input class="form-input" type="number" id="qaAmount" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+      <div><label class="form-label">Date</label><input class="form-input" type="date" id="qaDate"></div>
+      <div><label class="form-label">Type</label><div class="select-wrap"><select class="form-select" id="qaType" onchange="populateQaMainCat()"><option value="Spendable">Spendable</option><option value="Saving Box">Saving Box</option></select></div></div>
+      <div><label class="form-label">Pay Method</label><div class="select-wrap"><select class="form-select" id="qaPay"></select></div></div>
+      <div><label class="form-label">Category</label><div class="select-wrap"><select class="form-select" id="qaMain" onchange="populateQaSubCat()"></select></div></div>
+      <div><label class="form-label">Sub-Category</label><div class="select-wrap"><select class="form-select" id="qaSub"></select></div></div>
+      <div class="quick-add-full"><label class="form-label">Description (optional)</label><input class="form-input" type="text" id="qaDesc" placeholder="What was this for?"></div>
+    </div>
+    <button class="add-expense-btn" onclick="submitQuickAdd()" style="margin-top:4px">⚡ Add Expense</button>
+  </div>
+</div>
 </body>
 </html>
