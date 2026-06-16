@@ -2902,6 +2902,11 @@ function renderAnnualDash(){
 
   let totalSalary=0,totalSpent=0,totalSaved=0,monthsWithData=0;
 
+  // Avg of last 3 past months' actual spendable expenses → used as estimate for future months
+  const pastMs=months.map(mm=>`${annualYear}-${mm}`).filter(m=>m<currentM);
+  const last3Ms=pastMs.slice(-3);
+  const avgEst=last3Ms.length>0?Math.round(last3Ms.reduce((s,m)=>s+allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((a,e)=>a+e.amount,0),0)/last3Ms.length):0;
+
   const cards=months.map((mm,i)=>{
     const m=`${annualYear}-${mm}`;
     const isCurrent=m===currentM;
@@ -2929,7 +2934,7 @@ function renderAnnualDash(){
     return`<div class="annual-month-card${isCurrent?' current-month':''}${!hasData&&!isCurrent?' no-data':''}">
       <div class="annual-month-name">${monthNames[i]}${isCurrent?' ← now':''}</div>
       ${salary?`<div class="annual-kv"><span class="annual-kv-key">Salary</span><span class="annual-kv-val salary-kpi">${fmtK(salary)}</span></div>`:''}
-      ${spendable?`<div class="annual-kv"><span class="annual-kv-key">Budget</span><span class="annual-kv-val salary-kpi">${fmtK(spendable)}</span></div>`:''}
+      ${spendable?`<div class="annual-kv"><span class="annual-kv-key">Budget</span><span class="annual-kv-val salary-kpi">${fmtK(spendable)}</span></div>`:(isFuture&&avgEst>0?`<div class="annual-kv"><span class="annual-kv-key" style="color:var(--muted)">Budget</span><span class="annual-kv-val" style="color:var(--muted)">${fmtK(avgEst)} est.</span></div>`:'')}
       ${hasData||isCurrent?`<div class="annual-kv"><span class="annual-kv-key">Spent</span><span class="annual-kv-val salary-kpi" style="color:${spendable&&spentSP>spendable?'var(--red)':'var(--text)'}">${fmtK(spentSP)}</span></div>`:''}
       ${!hasData&&!isCurrent?`<div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${isFuture?'future':'no data'}</div>`:''}
       ${ratePill}
