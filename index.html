@@ -263,6 +263,19 @@ body{
 .sf-stat-val{font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace}
 .uc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)}
 .uc-row:last-child{border-bottom:none}
+.health-score-wrap{display:flex;align-items:center;gap:18px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.health-circle{width:76px;height:76px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:4px solid var(--hc,var(--accent));transition:border-color 0.3s}
+.health-grade{font-size:30px;font-weight:800;line-height:1;transition:color 0.3s}
+.health-score-num{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.health-summary-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.health-summary-sub{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;line-height:1.6}
+.health-metric{margin-bottom:12px}
+.health-metric-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.health-metric-name{font-size:12px;font-weight:600;color:var(--text)}
+.health-metric-val{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted)}
+.health-bar{height:6px;background:var(--border2);border-radius:3px;overflow:hidden}
+.health-bar-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.health-rec{padding:10px 12px;background:var(--surface);border-radius:var(--r2);margin-bottom:8px;font-size:12px;color:var(--text);line-height:1.6;border-left:3px solid var(--rec-color,var(--border2))}
 .neg{color:var(--red)!important}.pos{color:var(--green)!important}
 /* CHARTS */
 .chart-wrap{padding:16px}
@@ -788,6 +801,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div class="dash-sub-tabs">
     <div class="dash-sub-tab active" onclick="switchDashTab('monthly',this)">📅 Monthly</div>
     <div class="dash-sub-tab" onclick="switchDashTab('grand',this)">🌍 Grand Total</div>
+    <div class="dash-sub-tab" onclick="switchDashTab('health',this)">💚 Health</div>
   </div>
   <div id="dashMonthly">
     <div class="dash-month-tabs" id="dashMonthTabs"></div>
@@ -855,6 +869,23 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       <thead><tr><th>Month</th><th style="text-align:right">Spent</th><th style="text-align:right">Savings</th></tr></thead>
       <tbody id="grandHistoryRows"></tbody>
     </table>
+  </div>
+
+  <div id="dashHealth" style="display:none">
+    <div class="health-score-wrap">
+      <div class="health-circle" id="healthCircle">
+        <div class="health-grade salary-kpi" id="healthGrade">—</div>
+        <div class="health-score-num" id="healthScoreNum">/ 100</div>
+      </div>
+      <div>
+        <div class="health-summary-title" id="healthTitle">Calculating...</div>
+        <div class="health-summary-sub" id="healthSub"></div>
+      </div>
+    </div>
+    <div class="section-title">Score Breakdown</div>
+    <div id="healthMetrics"></div>
+    <div class="section-title" style="margin-top:16px">Key Insights</div>
+    <div id="healthRecs"></div>
   </div>
 </div>
 </div>
@@ -2310,9 +2341,14 @@ function switchDashTab(tab,el){
   el.classList.add('active');
   document.getElementById('dashMonthly').style.display=tab==='monthly'?'block':'none';
   document.getElementById('dashGrand').style.display=tab==='grand'?'block':'none';
+  document.getElementById('dashHealth').style.display=tab==='health'?'block':'none';
   renderDash();
 }
-function renderDash(){if(activeDashTab==='monthly')renderMonthlyDash();else renderGrandDash();}
+function renderDash(){
+  if(activeDashTab==='monthly') renderMonthlyDash();
+  else if(activeDashTab==='health') renderHealthDash();
+  else renderGrandDash();
+}
 
 // Editable KPIs
 function editKpi(field){
@@ -2498,6 +2534,134 @@ function renderGrandDash(){
     const mSav=getSalary(m)-getSavingBox(m)-getInvestments(m)-mSP;
     return`<tr><td>${formatMonth(m)}</td><td class="num salary-kpi">${fmt(mSP)}</td><td class="num salary-kpi ${mSav>=0?'pos':'neg'}">${fmt(mSav)}</td></tr>`;
   }).join('');
+  applyEyeState();
+}
+
+// ── FINANCIAL HEALTH DASHBOARD (Feature 1 / Phase 3) ──────────
+function renderHealthDash(){
+  const allExp=loadExpenses();
+  const currentM=getCurrentMonth();
+  const pastMonths=getMonths().filter(m=>m<currentM).slice(-3);
+
+  // ── Component 1: Savings Rate (weight 30) ──
+  let srScore=50, srDisplay='—', srDetail='';
+  if(pastMonths.length){
+    const rates=pastMonths.map(m=>{
+      const sal=getSalary(m);
+      if(!sal) return null;
+      const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+      return((sal-getSavingBox(m)-getInvestments(m)-spentSP)/sal)*100;
+    }).filter(r=>r!==null);
+    if(rates.length){
+      const avg=rates.reduce((a,b)=>a+b,0)/rates.length;
+      srDisplay=avg.toFixed(1)+'% avg savings rate';
+      srDetail=avg>=20?'Excellent (≥20%)':avg>=15?'Good (≥15%)':avg>=10?'Fair (≥10%)':avg>=5?'Low (≥5%)':'Very low';
+      srScore=avg>=20?100:avg>=15?80:avg>=10?60:avg>=5?35:avg>=0?15:0;
+    }
+  }
+
+  // ── Component 2: Budget Adherence (weight 25) ──
+  let baScore=50, baDisplay='—', baDetail='';
+  if(pastMonths.length){
+    const pcts=pastMonths.map(m=>{
+      const sp=getSpendable(m);
+      if(!sp) return null;
+      const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+      return(spentSP/sp)*100;
+    }).filter(p=>p!==null);
+    if(pcts.length){
+      const avg=pcts.reduce((a,b)=>a+b,0)/pcts.length;
+      baDisplay=avg.toFixed(0)+'% of budget used on avg';
+      baDetail=avg<=90?'Excellent (under budget)':avg<=100?'Good (within budget)':avg<=110?'Fair (slightly over)':avg<=125?'Over budget':'Significantly over';
+      baScore=avg<=90?100:avg<=100?80:avg<=110?55:avg<=125?30:10;
+    }
+  }
+
+  // ── Component 3: Emergency Fund (weight 25) ──
+  const efMonths=getEmergencyFundMonths();
+  let efScore=0, efDisplay='—', efDetail='';
+  if(efMonths!==null){
+    efDisplay=efMonths.toFixed(1)+' months of coverage';
+    efDetail=efMonths>=6?'Excellent (≥6 mo)':efMonths>=4?'Good (≥4 mo)':efMonths>=2?'Fair (≥2 mo)':efMonths>=1?'Low (≥1 mo)':'Critical (<1 mo)';
+    efScore=efMonths>=6?100:efMonths>=4?80:efMonths>=2?55:efMonths>=1?30:10;
+  }
+
+  // ── Component 4: Net Worth Trend (weight 20) ──
+  const nw=loadNetWorth();
+  const nwHist=Object.keys(nw.history||{}).sort();
+  let nwtScore=50, nwtDisplay='—', nwtDetail='';
+  if(nwHist.length>=2){
+    const latest=nw.history[nwHist[nwHist.length-1]].netWorth||0;
+    const prev=nw.history[nwHist[nwHist.length-2]].netWorth||0;
+    if(prev!==0){
+      const pctChg=((latest-prev)/Math.abs(prev))*100;
+      nwtDisplay=(pctChg>=0?'↑ ':'↓ ')+Math.abs(pctChg).toFixed(1)+'% month-over-month';
+      nwtDetail=pctChg>=2?'Growing':pctChg>=0?'Stable':pctChg>=-2?'Slight decline':'Declining';
+      nwtScore=pctChg>=2?100:pctChg>=0?70:pctChg>=-2?45:20;
+    } else {
+      nwtDisplay=latest>0?fmt(latest)+' SAR (positive)':fmt(latest)+' SAR (negative)';
+      nwtDetail=latest>=0?'Positive net worth':'Negative net worth';
+      nwtScore=latest>=0?70:20;
+    }
+  } else if(nwHist.length===1){
+    const v=nw.history[nwHist[0]].netWorth||0;
+    nwtDisplay='One snapshot recorded';
+    nwtDetail=v>=0?'Positive net worth':'Negative net worth';
+    nwtScore=v>=0?65:25;
+  } else {
+    const live=getNetWorth();
+    if(live!==0){nwtDisplay=fmt(live)+' SAR (current live)';nwtDetail=live>=0?'Positive':'Negative';nwtScore=live>=0?55:20;}
+    else{nwtDisplay='No net worth data';nwtDetail='Add accounts in Net Worth tab';nwtScore=50;}
+  }
+
+  // ── Weighted Total ──
+  const total=Math.round(srScore*0.30+baScore*0.25+efScore*0.25+nwtScore*0.20);
+  const grade=total>=85?'A':total>=70?'B':total>=55?'C':total>=40?'D':'F';
+  const gradeColor=total>=85?'var(--green)':total>=70?'var(--accent)':total>=55?'#FBBF24':'var(--red)';
+  const gradeDesc=total>=85?'Excellent financial health 🎉':total>=70?'Good financial health':total>=55?'Fair — room to improve':total>=40?'Needs attention':'Critical — take action now';
+
+  // Update circle
+  const circle=document.getElementById('healthCircle');
+  circle.style.setProperty('--hc',gradeColor);
+  circle.style.borderColor=gradeColor;
+  const gradeEl=document.getElementById('healthGrade');
+  gradeEl.textContent=grade; gradeEl.style.color=gradeColor;
+  document.getElementById('healthScoreNum').textContent=total+'/100';
+  document.getElementById('healthTitle').textContent=gradeDesc;
+  document.getElementById('healthSub').textContent=`Based on ${pastMonths.length?pastMonths.length+' completed month'+(pastMonths.length>1?'s':''):'current month data'} · Score updates monthly`;
+
+  // Metrics
+  const metrics=[
+    {name:'Savings Rate',val:srDisplay,detail:srDetail,score:srScore,weight:'30%'},
+    {name:'Budget Adherence',val:baDisplay,detail:baDetail,score:baScore,weight:'25%'},
+    {name:'Emergency Fund',val:efDisplay,detail:efDetail,score:efScore,weight:'25%'},
+    {name:'Net Worth Trend',val:nwtDisplay,detail:nwtDetail,score:nwtScore,weight:'20%'},
+  ];
+  document.getElementById('healthMetrics').innerHTML=metrics.map(m=>{
+    const c=m.score>=80?'var(--green)':m.score>=55?'var(--accent)':m.score>=30?'#FBBF24':'var(--red)';
+    return`<div class="health-metric">
+      <div class="health-metric-hdr">
+        <span class="health-metric-name">${m.name} <span style="color:var(--muted);font-weight:400;font-size:10px">(${m.weight})</span></span>
+        <span class="health-metric-val">${m.detail||''} · ${m.score}/100</span>
+      </div>
+      <div class="health-bar"><div class="health-bar-fill" style="width:${m.score}%;background:${c}"></div></div>
+      <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px">${m.val}</div>
+    </div>`;
+  }).join('');
+
+  // Recommendations
+  const recs=[];
+  if(srScore<35) recs.push({color:'var(--red)',text:'💡 Your savings rate is very low. Consider reducing Spendable allocations or channelling more into Saving Boxes.'});
+  else if(srScore<65) recs.push({color:'#FBBF24',text:'💡 Aim for a 15–20% savings rate. Small reductions in Welfare or Monthly Needs spending can make a big difference.'});
+  if(baScore<55) recs.push({color:'var(--red)',text:'⚠️ You\'ve been going over budget regularly. Review your highest-spending categories in the Charts tab and adjust your budget plan.'});
+  else if(baScore<80) recs.push({color:'#FBBF24',text:'📊 You\'re close to your budget limit. Watch Monthly Needs and Welfare categories closely.'});
+  if(efScore<55) recs.push({color:'var(--red)',text:'🛡️ Emergency fund covers less than 2 months of essential expenses. Prioritise building this before other savings goals.'});
+  else if(efScore<80) recs.push({color:'#FBBF24',text:'🛡️ Emergency fund is building well. Keep going until you reach 6 months of essential expenses covered.'});
+  if(nwtScore<45) recs.push({color:'var(--red)',text:'📉 Your net worth is declining or negative. Review your liabilities and debt in the Net Worth tab.'});
+  else if(nwtScore<70&&nwHist.length<2) recs.push({color:'var(--muted)',text:'📸 Save a monthly net worth snapshot to track your wealth trend over time (Net Worth tab → Save Snapshot).'});
+  if(!recs.length) recs.push({color:'var(--green)',text:'✅ Your finances are in great shape across all areas. Keep maintaining your savings rate and budget discipline!'});
+
+  document.getElementById('healthRecs').innerHTML=recs.map(r=>`<div class="health-rec" style="--rec-color:${r.color}">${r.text}</div>`).join('');
   applyEyeState();
 }
 
