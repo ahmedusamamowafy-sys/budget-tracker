@@ -309,6 +309,23 @@ body{
 .annual-summary{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-top:14px}
 .annual-summary-row{display:flex;justify-content:space-between;font-size:12px;font-family:'IBM Plex Mono',monospace;margin-bottom:5px}
 .annual-summary-row:last-child{margin-bottom:0;padding-top:6px;border-top:1px solid var(--border2);font-weight:700}
+/* INSIGHTS TAB */
+.leak-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-bottom:10px;border-left:3px solid var(--leak-color,var(--red))}
+.leak-card-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.leak-cat-name{font-size:13px;font-weight:700;color:var(--text)}
+.leak-badge{font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:20px;background:rgba(255,77,77,0.15);color:var(--red)}
+.leak-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.leak-bar-wrap{flex:1;height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.leak-bar-fill{height:100%;border-radius:3px}
+.leak-bar-label{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);white-space:nowrap;min-width:70px;text-align:right}
+.leak-detail{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;line-height:1.6}
+.insight-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.insight-icon{font-size:22px;line-height:1;flex-shrink:0;margin-top:2px}
+.insight-body{flex:1}
+.insight-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+.insight-desc{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;line-height:1.6}
+.insight-val{font-size:13px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:4px}
+.insights-empty{text-align:center;padding:32px 0;color:var(--muted);font-size:13px;font-family:'IBM Plex Mono',monospace}
 .neg{color:var(--red)!important}.pos{color:var(--green)!important}
 /* CHARTS */
 .chart-wrap{padding:16px}
@@ -836,6 +853,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     <div class="dash-sub-tab" onclick="switchDashTab('grand',this)">🌍 Grand Total</div>
     <div class="dash-sub-tab" onclick="switchDashTab('health',this)">💚 Health</div>
     <div class="dash-sub-tab" onclick="switchDashTab('annual',this)">📆 Annual</div>
+    <div class="dash-sub-tab" onclick="switchDashTab('insights',this)">🔍 Insights</div>
   </div>
   <div id="dashMonthly">
     <div class="dash-month-tabs" id="dashMonthTabs"></div>
@@ -932,6 +950,15 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
     </div>
     <div class="annual-grid" id="annualGrid"></div>
     <div class="annual-summary" id="annualSummary"></div>
+  </div>
+
+  <div id="dashInsights" style="display:none">
+    <div class="section-title">🚨 Spending Leaks</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Categories consistently over budget in the last 3 months.</div>
+    <div id="insightLeaks"></div>
+    <div class="section-title" style="margin-top:20px">💡 Auto Insights</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace">Patterns and observations from your spending data.</div>
+    <div id="insightCards"></div>
   </div>
 </div>
 </div>
@@ -2432,12 +2459,14 @@ function switchDashTab(tab,el){
   document.getElementById('dashGrand').style.display=tab==='grand'?'block':'none';
   document.getElementById('dashHealth').style.display=tab==='health'?'block':'none';
   document.getElementById('dashAnnual').style.display=tab==='annual'?'block':'none';
+  document.getElementById('dashInsights').style.display=tab==='insights'?'block':'none';
   renderDash();
 }
 function renderDash(){
   if(activeDashTab==='monthly') renderMonthlyDash();
   else if(activeDashTab==='health') renderHealthDash();
   else if(activeDashTab==='annual') renderAnnualDash();
+  else if(activeDashTab==='insights') renderInsightsDash();
   else renderGrandDash();
 }
 
@@ -2816,6 +2845,210 @@ function renderAnnualDash(){
     <div class="annual-summary-row"><span style="color:var(--muted)">Total Spent (Spendable)</span><span class="salary-kpi">${fmt(totalSpent)} SAR</span></div>
     <div class="annual-summary-row"><span style="color:var(--muted)">Avg Savings Rate</span><span style="color:${avgRate===null?'var(--muted)':avgRate>=20?'var(--green)':avgRate>=10?'var(--accent)':'var(--red)'}">${avgRate!==null?avgRate.toFixed(1)+'%':'—'}</span></div>
   `;
+  applyEyeState();
+}
+
+// ── INSIGHTS + LEAK DETECTION (Phase 5) ───────────────────────
+function renderInsightsDash(){
+  const allExp=loadExpenses();
+  const currentM=getCurrentMonth();
+  // Use last 3 completed months for leak detection
+  const past3=getMonths().filter(m=>m<currentM).slice(-3);
+
+  // ── SPENDING LEAKS ──
+  // Build per-category budget vs actual for each past month
+  const catOverMap={}; // {catName: [{month, budget, actual, over}]}
+  past3.forEach(m=>{
+    const spentByCat={};
+    allExp.filter(e=>e.month===m&&e.type==='Spendable').forEach(e=>{
+      spentByCat[e.category]=(spentByCat[e.category]||0)+e.amount;
+    });
+    // Get budget for each cat from budget plans
+    const plans=loadBudgetPlans();
+    const plan=plans[m];
+    if(plan&&plan.categories){
+      plan.categories.filter(c=>c.type==='Spendable').forEach(c=>{
+        const actual=spentByCat[c.name]||0;
+        const over=actual-c.budget;
+        if(!catOverMap[c.name]) catOverMap[c.name]=[];
+        catOverMap[c.name].push({month:m,budget:c.budget,actual,over});
+      });
+    }
+  });
+
+  // Find leaks: over budget in 2+ of last 3 months
+  const leaks=Object.entries(catOverMap)
+    .map(([name,entries])=>{
+      const overMonths=entries.filter(e=>e.over>0);
+      const avgOver=overMonths.length?overMonths.reduce((s,e)=>s+e.over,0)/overMonths.length:0;
+      return{name,entries,overMonths:overMonths.length,avgOver,totalMonths:entries.length};
+    })
+    .filter(l=>l.overMonths>=2)
+    .sort((a,b)=>b.avgOver-a.avgOver);
+
+  const leaksEl=document.getElementById('insightLeaks');
+  if(!leaks.length){
+    leaksEl.innerHTML=`<div class="insights-empty">✅ No spending leaks detected in the last ${past3.length} month${past3.length!==1?'s':''}.${!past3.length?' Add more budget months to enable leak detection.':''}</div>`;
+  } else {
+    leaksEl.innerHTML=leaks.map(l=>{
+      const severity=l.overMonths===3?'🔴 Critical':l.overMonths===2?'🟡 Watch':'';
+      const color=l.overMonths===3?'var(--red)':'#FBBF24';
+      const monthBars=l.entries.map(e=>{
+        const pct=e.budget>0?Math.min(200,Math.round((e.actual/e.budget)*100)):0;
+        const barColor=e.over>0?'var(--red)':'var(--green)';
+        return`<div class="leak-bar-row">
+          <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;min-width:36px">${formatMonth(e.month).substring(0,3)}</span>
+          <div class="leak-bar-wrap"><div class="leak-bar-fill" style="width:${Math.min(100,pct)}%;background:${barColor}"></div></div>
+          <span class="leak-bar-label" style="color:${e.over>0?'var(--red)':'var(--green)'}">${e.over>0?'+':'-'}${fmt(Math.abs(e.over))}</span>
+        </div>`;
+      }).join('');
+      return`<div class="leak-card" style="--leak-color:${color}">
+        <div class="leak-card-header">
+          <span class="leak-cat-name">${l.name}</span>
+          <span class="leak-badge">${severity}</span>
+        </div>
+        ${monthBars}
+        <div class="leak-detail" style="margin-top:8px">Avg overspend: <span style="color:var(--red);font-weight:700">${fmt(l.avgOver)} SAR/mo</span> · Over budget ${l.overMonths}/${l.totalMonths} months</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── AUTO INSIGHTS ──
+  const insights=[];
+  const currentExp=allExp.filter(e=>e.month===currentM);
+  const currentSpentSP=currentExp.filter(e=>e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+
+  // 1. Month-over-month spending change
+  if(past3.length>=1){
+    const prevM=past3[past3.length-1];
+    const prevSpent=allExp.filter(e=>e.month===prevM&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+    if(prevSpent>0&&currentSpentSP>0){
+      const delta=currentSpentSP-prevSpent;
+      const pct=Math.abs(delta/prevSpent*100).toFixed(0);
+      const up=delta>0;
+      insights.push({
+        icon:up?'📈':'📉',
+        title:`Spending ${up?'up':'down'} ${pct}% vs last month`,
+        desc:`You've spent ${fmt(currentSpentSP)} SAR this month vs ${fmt(prevSpent)} SAR in ${formatMonth(prevM)}.`,
+        val:`${up?'+':'−'}${fmt(Math.abs(delta))} SAR`,
+        valColor:up?'var(--red)':'var(--green)'
+      });
+    }
+  }
+
+  // 2. Top spending category this month
+  if(currentSpentSP>0){
+    const byCat={};
+    currentExp.filter(e=>e.type==='Spendable').forEach(e=>{byCat[e.category]=(byCat[e.category]||0)+e.amount;});
+    const topCat=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+    if(topCat){
+      const pct=Math.round(topCat[1]/currentSpentSP*100);
+      insights.push({
+        icon:'🏆',
+        title:'Top spending category this month',
+        desc:`${topCat[0]} accounts for ${pct}% of your total spendable spending.`,
+        val:`${fmt(topCat[1])} SAR`,
+        valColor:'var(--blue)'
+      });
+    }
+  }
+
+  // 3. Savings rate trend (last 3 months)
+  if(past3.length>=2){
+    const rates=past3.map(m=>{
+      const sal=getSalary(m); if(!sal) return null;
+      const spent=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+      return((sal-getSavingBox(m)-getInvestments(m)-spent)/sal)*100;
+    }).filter(r=>r!==null);
+    if(rates.length>=2){
+      const trend=rates[rates.length-1]-rates[0];
+      const improving=trend>0;
+      insights.push({
+        icon:improving?'🌱':'⚠️',
+        title:`Savings rate ${improving?'improving':'declining'}`,
+        desc:`Your savings rate ${improving?'rose':'fell'} ${Math.abs(trend).toFixed(1)}% over the last ${rates.length} months.`,
+        val:`${rates[rates.length-1].toFixed(1)}% now`,
+        valColor:improving?'var(--green)':'var(--red)'
+      });
+    }
+  }
+
+  // 4. Best month this year (lowest spending relative to budget)
+  const yearMonths=getMonths().filter(m=>m.startsWith(String(new Date().getFullYear()))&&m<currentM);
+  if(yearMonths.length>=2){
+    const plans=loadBudgetPlans();
+    const scores=yearMonths.map(m=>{
+      const budget=getSpendable(m); if(!budget) return null;
+      const spent=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+      return{m,pct:spent/budget*100,spent,budget};
+    }).filter(Boolean);
+    if(scores.length){
+      const best=scores.sort((a,b)=>a.pct-b.pct)[0];
+      insights.push({
+        icon:'🥇',
+        title:`Best month: ${formatMonth(best.m)}`,
+        desc:`Spent only ${Math.round(best.pct)}% of your budget — ${fmt(best.budget-best.spent)} SAR under budget.`,
+        val:`${fmt(best.spent)} / ${fmt(best.budget)} SAR`,
+        valColor:'var(--green)'
+      });
+    }
+  }
+
+  // 5. Most frequent expense category
+  if(currentExp.length>0){
+    const freq={};
+    currentExp.filter(e=>e.type==='Spendable').forEach(e=>{freq[e.category]=(freq[e.category]||0)+1;});
+    const top=Object.entries(freq).sort((a,b)=>b[1]-a[1])[0];
+    if(top&&top[1]>=2){
+      insights.push({
+        icon:'🔁',
+        title:'Most frequent category',
+        desc:`${top[0]} appears ${top[1]} times in your log this month.`,
+        val:`${top[1]} transactions`,
+        valColor:'var(--purple)'
+      });
+    }
+  }
+
+  // 6. Biggest single expense this month
+  if(currentExp.length>0){
+    const biggest=currentExp.filter(e=>e.type==='Spendable').sort((a,b)=>b.amount-a.amount)[0];
+    if(biggest){
+      insights.push({
+        icon:'💸',
+        title:'Biggest single expense this month',
+        desc:`${biggest.category}${biggest.description?' — '+biggest.description:''} on ${biggest.date}.`,
+        val:`${fmt(biggest.amount)} SAR`,
+        valColor:'var(--text)'
+      });
+    }
+  }
+
+  // 7. No budget set warning
+  if(!getSalary(currentM)){
+    insights.push({
+      icon:'⚙️',
+      title:'No budget set for this month',
+      desc:'Head to the Budget tab to set your salary, saving boxes, and category budgets for accurate tracking.',
+      val:'Action needed',
+      valColor:'var(--red)'
+    });
+  }
+
+  const insightEl=document.getElementById('insightCards');
+  if(!insights.length){
+    insightEl.innerHTML=`<div class="insights-empty">Add more expense data to generate personalized insights.</div>`;
+  } else {
+    insightEl.innerHTML=insights.map(i=>`
+      <div class="insight-card">
+        <div class="insight-icon">${i.icon}</div>
+        <div class="insight-body">
+          <div class="insight-title">${i.title}</div>
+          <div class="insight-desc">${i.desc}</div>
+          <div class="insight-val salary-kpi" style="color:${i.valColor}">${i.val}</div>
+        </div>
+      </div>`).join('');
+  }
   applyEyeState();
 }
 
