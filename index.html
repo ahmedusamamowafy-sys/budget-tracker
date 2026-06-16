@@ -1489,7 +1489,7 @@ const MAIN_BUDGETS={'Housing':150,'Monthly Needs':1150,'Transportation':720,'Per
 const SUB_BUDGETS={'Internet':0,'Home Maintenance':50,'Cleaning Supplies':50,'Protein food':635,'Food Required Items':100,'Groceries':150,'Laundry':0,'Household Items':85,'Internet Bills':0,'Mobile Bills':180,'Car Petrol':300,'Parking Fees':20,'Car Wash':50,'Haircut / Salon':30,'Skincare':50,'Shopping':500,'Restaurants':150,'Coffee Shops':150,'Entertainment':150,'Weekend Trips':150};
 const SUB_TO_MAIN={'Internet':'Housing','Home Maintenance':'Housing','Cleaning Supplies':'Housing','Protein food':'Monthly Needs','Food Required Items':'Monthly Needs','Groceries':'Monthly Needs','Laundry':'Monthly Needs','Household Items':'Monthly Needs','Internet Bills':'Monthly Needs','Mobile Bills':'Monthly Needs','Car Petrol':'Transportation','Parking Fees':'Transportation','Car Wash':'Transportation','Haircut / Salon':'Personal Care','Skincare':'Personal Care','Shopping':'Welfare','Restaurants':'Welfare','Coffee Shops':'Welfare','Entertainment':'Welfare','Weekend Trips':'Welfare'};
 
-let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=new Date().getFullYear() logSearchQ='';
+let eyeMode='none', selectedLogMonth=getCurrentMonth(), selectedDashMonth=getCurrentMonth(), activeDashTab='monthly', editingId=null, sortField='date', sortDir='desc', activeFilters={type:null,pay:null,main:null,sub:null}, logCollapsed={spend:false,save:false}, annualYear=new Date().getFullYear(),logSearchQ='';
 
 function loadSettings(){try{return JSON.parse(localStorage.getItem(SETTINGS_KEY))||{};}catch(e){return{};}}
 function saveSettings(s){
@@ -2420,7 +2420,7 @@ function renderLog(){
   document.getElementById('logTotal').textContent=fmt(expenses.reduce((s,e)=>s+e.amount,0))+' SAR';
   document.getElementById('logTotalBreakdown').textContent=totalSave>0?`Spend: ${fmt(totalSpend)} · Save: ${fmt(totalSave)}`:`Spendable: ${fmt(totalSpend)}`;
   const list=document.getElementById('expenseList');
-  if(!expenses.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No expenses for ${formatMonth(selectedLogMonth)}</div></div>`;return;}
+  if(!expenses.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No expenses for ${formatMonth(selectedLogMonth)}</div></div>`;return;}hh
   function buildItems(items){
     return items.map(e=>{
       const icon=CAT_ICONS[e.main]||CAT_ICONS.default;
