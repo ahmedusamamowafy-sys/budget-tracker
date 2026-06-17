@@ -2917,6 +2917,7 @@ function renderAnnualDash(){
     const investments=getInvestments(m);
     const spendable=getSpendable(m);
     const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+            const spentSB=allExp.filter(e=>e.month===m&&e.type==='Saving Box').reduce((s,e)=>s+e.amount,0);
     const hasData=salary>0||spentSP>0;
 
     if(hasData){
