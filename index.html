@@ -2767,6 +2767,7 @@ function renderHealthDash(){
       const sal=getSalary(m);
       if(!sal) return null;
       const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+    const spentSB=allExp.filter(e=>e.month===m&&e.type==='Saving Box').reduce((s,e)=>s+e.amount,0);
       return((sal-getSavingBox(m)-getInvestments(m)-spentSP)/sal)*100;
     }).filter(r=>r!==null);
     if(rates.length){
@@ -2936,6 +2937,8 @@ function renderAnnualDash(){
       ${salary?`<div class="annual-kv"><span class="annual-kv-key">Salary</span><span class="annual-kv-val salary-kpi">${fmtK(salary)}</span></div>`:''}
       ${isFuture&&avgEst>0?`<div class="annual-kv"><span class="annual-kv-key" style="color:var(--muted)">Budget</span><span class="annual-kv-val" style="color:var(--muted)">${fmtK(avgEst)} est.</span></div>`:(spendable?`<div class="annual-kv"><span class="annual-kv-key">Budget</span><span class="annual-kv-val salary-kpi">${fmtK(spendable)}</span></div>`:'')}
       ${hasData||isCurrent?`<div class="annual-kv"><span class="annual-kv-key">Spent</span><span class="annual-kv-val salary-kpi" style="color:${spendable&&spentSP>spendable?'var(--red)':'var(--text)'}">${fmtK(spentSP)}</span></div>`:''}
+      ${spentSB>0?`<div class="annual-kv"><span class="annual-kv-key" style="color:rgba(167,139,250,0.85)">Saving Box</span><span class="annual-kv-val salary-kpi" style="color:rgba(167,139,250,0.85)">${fmtK(spentSB)}</span></div>`:''}
+      ${investments>0?`<div class="annual-kv"><span class="annual-kv-key" style="color:rgba(96,165,250,0.85)">Investment</span><span class="annual-kv-val salary-kpi" style="color:rgba(96,165,250,0.85)">${fmtK(investments)}</span></div>`:''}
       ${!hasData&&!isCurrent?`<div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${isFuture?'future':'no data'}</div>`:''}
       ${ratePill}
     </div>`;
