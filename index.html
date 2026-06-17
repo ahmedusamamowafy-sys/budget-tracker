@@ -6,7 +6,7 @@
 <title>Budget Tracker</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C8F135">
-<meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">h
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Budget">
@@ -2906,7 +2906,7 @@ function renderAnnualDash(){
   // Avg of last 3 past months' actual spendable expenses → used as estimate for future months
   const pastMs=[...new Set(allExp.map(e=>e.month))].filter(m=>m<=currentM).sort();
   const last3Ms=pastMs.slice(-3);
-  const avgBudget=last3Ms.length>0?Math.round(last3Ms.reduce((s,m)=>s+getSpendable(m),0)/last3Ms.length):0;
+  const avgBudget=(()=>{const pm=[...pastMs].reverse().find(p=>{const pl=getBudgetForMonth(p);return pl&&pl._salary!=null;});return pm?getSpendable(pm):0;})();
   const avgEst=last3Ms.length>0?Math.round(last3Ms.reduce((s,m)=>s+allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((a,e)=>a+e.amount,0),0)/last3Ms.length):0;
 
   const cards=months.map((mm,i)=>{
@@ -2917,7 +2917,7 @@ function renderAnnualDash(){
     const savingBox=getSavingBox(m);
     const investments=getInvestments(m);
     const spendable=getSpendable(m);
-        const hasBudget=salary>0||spendable>0||savingBox>0||investments>0;
+        const rawPlan=getBudgetForMonth(m);const hasBudget=rawPlan!=null&&rawPlan._salary!=null;
     const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
             const spentSB=allExp.filter(e=>e.month===m&&e.type==='Saving Box').reduce((s,e)=>s+e.amount,0);
     const hasData=salary>0||spentSP>0;
