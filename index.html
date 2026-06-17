@@ -2906,7 +2906,7 @@ function renderAnnualDash(){
   // Avg of last 3 past months' actual spendable expenses → used as estimate for future months
   const pastMs=[...new Set(allExp.map(e=>e.month))].filter(m=>m<=currentM).sort();
   const last3Ms=pastMs.slice(-3);
-  const avgBudget=(()=>{const pm=[...pastMs].reverse().find(p=>{const pl=getBudgetForMonth(p);return pl&&pl._salary!=null;});return pm?getSpendable(pm):0;})();
+  const avgBudget=(()=>{const sMs=[...pastMs].reverse().filter(p=>{const pl=getBudgetForMonth(p);return pl&&pl._salary!=null;}).slice(0,3);return sMs.length?Math.round(sMs.reduce((s,m)=>s+getSpendable(m),0)/sMs.length):0;})();
   const avgEst=last3Ms.length>0?Math.round(last3Ms.reduce((s,m)=>s+allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((a,e)=>a+e.amount,0),0)/last3Ms.length):0;
 
   const cards=months.map((mm,i)=>{
