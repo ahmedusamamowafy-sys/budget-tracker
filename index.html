@@ -309,6 +309,8 @@ body{
 .annual-summary-row:last-child{margin-bottom:0;padding-top:6px;border-top:1px solid var(--border2);font-weight:700}
 .fc-filter-btn{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:5px 13px;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all 0.2s}
 .fc-filter-btn.active{background:var(--accent);color:#0D0D0F;border-color:var(--accent);box-shadow:var(--glow-accent)}
+.fc-hz-btn{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all 0.2s}
+.fc-hz-btn.active{background:var(--accent);color:#0D0D0F;border-color:var(--accent)}
 .fc-proj-note{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:12px}
 /* INSIGHTS TAB */
 .leak-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px;margin-bottom:10px;border-left:3px solid var(--leak-color,var(--red))}
@@ -1012,23 +1014,18 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   </div>
 
   <div id="dashForecast" style="display:none">
-    <div class="annual-year-hdr">
-      <div class="annual-year-label" id="forecastYearLabel">2026</div>
-      <div class="annual-year-nav">
-        <button class="annual-year-btn" onclick="shiftForecastYear(-1)">‹</button>
-        <button class="annual-year-btn" onclick="shiftForecastYear(1)">›</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">📈 Cumulative Forecast <span style="font-size:10px;color:var(--muted);font-weight:400">solid=actual · dashed=projected</span></div>
+      <div style="display:flex;gap:5px">
+        <button class="fc-hz-btn" data-hz="3" onclick="setFcHorizon(3)">3M</button>
+        <button class="fc-hz-btn" data-hz="6" onclick="setFcHorizon(6)">6M</button>
+        <button class="fc-hz-btn" data-hz="12" onclick="setFcHorizon(12)">12M</button>
+        <button class="fc-hz-btn active" data-hz="24" onclick="setFcHorizon(24)">24M</button>
       </div>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-      <button class="fc-filter-btn active" data-metric="salary" onclick="setForecastMetric('salary')">💰 Salary</button>
-      <button class="fc-filter-btn" data-metric="budget" onclick="setForecastMetric('budget')">📋 Budget</button>
-      <button class="fc-filter-btn" data-metric="spent" onclick="setForecastMetric('spent')">💸 Spent</button>
-      <button class="fc-filter-btn" data-metric="invest" onclick="setForecastMetric('invest')">📈 Investment</button>
-      <button class="fc-filter-btn" data-metric="sbremain" onclick="setForecastMetric('sbremain')">📦 Saving Boxes</button>
-    </div>
-    <div class="fc-proj-note" id="fcProjNote"></div>
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px 10px;overflow:hidden">
-      <canvas id="forecastCanvas" style="display:block;max-width:100%"></canvas>
+    <div class="fc-proj-note" id="fcProjNote" style="margin-bottom:8px"></div>
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px 6px;overflow:hidden">
+      <canvas id="forecastCumCanvas" style="display:block;max-width:100%;width:100%"></canvas>
     </div>
     <div class="annual-summary" id="forecastSummary" style="margin-top:14px"></div>
   </div>
@@ -1623,6 +1620,7 @@ function mergeExpensesPreserveMeta(pulled, local){
 function getCurrentMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
 function formatMonth(ym){const[y,m]=ym.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y;}
 function fmt(n){return Math.round(n).toLocaleString('en-SA');}
+function fmtK(v){return v>=1000?(v/1000).toFixed(1)+"k":Math.round(v).toString();}
 function fmtDateTime(iso){
   if(!iso)return'';
   const d=new Date(iso);
@@ -2917,147 +2915,219 @@ function shiftAnnualYear(delta){
   renderAnnualDash();
 }
 // ── FORECASTING TAB ────────────────────────────────────────────────────────
-let forecastYear=new Date().getFullYear(),forecastMetric='salary',_fcAnimFrame=null;
-const FC_METRICS={
-  salary:{key:'salary',label:'Salary',barColor0:'rgba(100,200,255,0.92)',barColor1:'rgba(30,110,220,0.28)',projColor0:'rgba(100,200,255,0.50)',projColor1:'rgba(30,110,220,0.10)'},
-  budget:{key:'budget',label:'Spendable Budget',barColor0:'rgba(200,241,53,0.88)',barColor1:'rgba(140,180,20,0.20)',projColor0:'rgba(200,241,53,0.42)',projColor1:'rgba(140,180,20,0.08)'},
-  spent:{key:'spent',label:'Actual Spent',barColor0:'rgba(255,140,80,0.90)',barColor1:'rgba(200,80,30,0.22)',projColor0:'rgba(255,140,80,0.45)',projColor1:'rgba(200,80,30,0.08)'},
-  invest:{key:'invest',label:'Investment',barColor0:'rgba(130,100,255,0.90)',barColor1:'rgba(80,40,200,0.22)',projColor0:'rgba(130,100,255,0.45)',projColor1:'rgba(80,40,200,0.08)'},
-  sbremain:{key:'sbDeposited',label:'Saving Box Deposits',barColor0:'rgba(80,220,160,0.90)',barColor1:'rgba(20,150,100,0.22)',projColor0:'rgba(80,220,160,0.45)',projColor1:'rgba(20,150,100,0.08)'}
-};
-function shiftForecastYear(delta){forecastYear+=delta;renderForecastingDash();}
-function setForecastMetric(m){
-  forecastMetric=m;
-  document.querySelectorAll('.fc-filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.metric===m));
-  if(window._fcData) renderForecastChart();
+let _fcHorizon=24,_fcCumAnimFrame=null;
+function setFcHorizon(h){
+  _fcHorizon=h;
+  document.querySelectorAll('.fc-hz-btn').forEach(b=>b.classList.toggle('active',+b.dataset.hz===h));
+  renderForecastingDash();
 }
 function renderForecastingDash(){
   const allExp=loadExpenses();
   const currentM=getCurrentMonth();
-  const currentYear=new Date().getFullYear();
+  // Build window: past months with data + future up to _fcHorizon total
+  const allActualMonths=[...new Set(allExp.map(e=>e.month))].sort();
+  const firstMonth=allActualMonths.length?allActualMonths[0]:currentM;
+  // Generate all months in window: from firstMonth to (currentM + future portion)
+  function addMonths(ym,n){
+    let [y,m]=ym.split('-').map(Number);
+    m+=n; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;}
+    return y+'-'+String(m).padStart(2,'0');
+  }
+  function monthsBetween(a,b){
+    const [ay,am]=a.split('-').map(Number);
+    const [by,bm]=b.split('-').map(Number);
+    return (by-ay)*12+(bm-am);
+  }
+  const pastCount=Math.max(0,monthsBetween(firstMonth,currentM));
+  const futureCount=_fcHorizon;
+  const totalMonths=pastCount+futureCount+1; // +1 for current month
+  const months=Array.from({length:totalMonths},(_,i)=>addMonths(firstMonth,i));
+
+  // Per-month raw values
   const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const allMonths=Array.from({length:12},(_,i)=>forecastYear+'-'+String(i+1).padStart(2,'0'));
-  const raw=allMonths.map((m,i)=>({
-    m,label:MN[i],
-    isPast:m<currentM,isCurrent:m===currentM,isProjected:m>currentM,
-    salary:getSalary(m),budget:getSpendable(m),invest:getInvestments(m),
-    spent:allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0),
-    sbDeposited:allExp.filter(e=>e.month===m&&e.type==='Saving Box').reduce((s,e)=>s+e.amount,0)
-  }));
-  const baseMs=raw.filter(d=>!d.isProjected);
-  const avg=k=>{const vals=baseMs.map(d=>d[k]).filter(v=>v>0);return vals.length?Math.round(vals.reduce((s,v)=>s+v,0)/vals.length):0;};
-  const avgs={salary:avg('salary'),budget:avg('budget'),spent:avg('spent'),invest:avg('invest'),sbDeposited:avg('sbDeposited')};
-  const chartData=raw.map(d=>({
-    m:d.m,label:d.label,isPast:d.isPast,isCurrent:d.isCurrent,isProjected:d.isProjected,
-    salary:d.isProjected?avgs.salary:d.salary,
-    budget:d.isProjected?avgs.budget:d.budget,
-    spent:d.isProjected?avgs.spent:d.spent,
-    invest:d.isProjected?avgs.invest:d.invest,
-    sbDeposited:d.isProjected?avgs.sbDeposited:d.sbDeposited
-  }));
-  window._fcData=chartData;window._fcAvg=avgs;
-  document.getElementById('forecastYearLabel').textContent=forecastYear+(forecastYear===currentYear?' (This Year)':'');
+  const raw=months.map(m=>{
+    const mm=parseInt(m.split('-')[1])-1;
+    const spentSP=allExp.filter(e=>e.month===m&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+    const spentSB=allExp.filter(e=>e.month===m&&e.type==='Saving Box').reduce((s,e)=>s+e.amount,0);
+    const salary=getSalary(m);
+    const invest=getInvestments(m);
+    const budget=getSpendable(m);
+    const sbBudget=getSavingBox(m);
+    return{
+      m, label:MN[mm],
+      isPast:m<currentM, isCurrent:m===currentM, isProjected:m>currentM,
+      salary, invest, budget, spentSP, sbNet:sbBudget-spentSB
+    };
+  });
+
+  // Averages from actual months only (past + current)
+  const actualMonths=raw.filter(d=>!d.isProjected);
+  function avg(key){
+    const vals=actualMonths.map(d=>d[key]).filter(v=>v>0);
+    return vals.length?Math.round(vals.reduce((s,v)=>s+v,0)/vals.length):0;
+  }
+  const avgs={salary:avg('salary'),invest:avg('invest'),budget:avg('budget'),spentSP:avg('spentSP'),sbNet:avg('sbNet')};
+
+  // Fill projected months with averages
+  const chartData=raw.map(d=>d.isProjected?{...d,salary:avgs.salary,invest:avgs.invest,budget:avgs.budget,spentSP:avgs.spentSP,sbNet:avgs.sbNet}:d);
+
+  // Compute cumulative series
+  const series=[
+    {key:'salary',  label:'Salary',          color:'rgba(96,165,250,1)',   dash:false},
+    {key:'invest',  label:'Investment',       color:'rgba(167,139,250,1)', dash:false},
+    {key:'spentSP', label:'Actual Spent',     color:'rgba(255,100,80,1)',  dash:false},
+    {key:'budget',  label:'Spendable Budget', color:'rgba(200,241,53,1)',  dash:false},
+    {key:'sbNet',   label:'SB Net Savings',   color:'rgba(74,222,128,1)',  dash:false}
+  ];
+  series.forEach(s=>{
+    let cum=0;
+    s.cumValues=chartData.map(d=>{cum+=d[s.key]||0;return cum;});
+  });
+
+  window._fcCumData=chartData;
+  window._fcCumSeries=series;
+
+  // Note
   const projCount=chartData.filter(d=>d.isProjected).length;
   const el=document.getElementById('fcProjNote');
-  if(el) el.textContent=projCount>0?('~ dashed bars = '+projCount+' projected months (avg of '+baseMs.length+' months)  ·  solid = actual data'):'All months shown with actual data.';
-  const mk=FC_METRICS[forecastMetric].key;
-  const totalReal=baseMs.reduce((s,d)=>s+d[mk],0);
-  const totalProj=chartData.filter(d=>d.isProjected).reduce((s,d)=>s+d[mk],0);
-  const grandTotal=chartData.reduce((s,d)=>s+d[mk],0);
+  if(el) el.textContent=`${actualMonths.length} months of actual data Â· ${projCount} months projected using simple average`;
+
+  // Summary table
   const sumEl=document.getElementById('forecastSummary');
-  if(sumEl) sumEl.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">'+forecastYear+' '+FC_METRICS[forecastMetric].label+' Forecast</div>'+
-    '<div class="annual-summary-row"><span style="color:var(--muted)">Actual ('+baseMs.length+' months)</span><span class="salary-kpi">'+fmt(totalReal)+' SAR</span></div>'+
-    '<div class="annual-summary-row"><span style="color:var(--muted)">Projected ('+projCount+' months)</span><span style="color:var(--accent)">'+fmt(totalProj)+' SAR</span></div>'+
-    '<div class="annual-summary-row"><span style="color:var(--muted)">Cumulative Year-End</span><span class="salary-kpi">'+fmt(grandTotal)+' SAR</span></div>'+
-    '<div class="annual-summary-row"><span style="color:var(--muted)">Monthly Average</span><span class="salary-kpi">'+fmt(Math.round(grandTotal/12))+' SAR</span></div>';
-  renderForecastChart();
+  if(sumEl){
+    const lastIdx=chartData.length-1;
+    sumEl.innerHTML=`
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+        Projected Totals at End of ${_fcHorizon}-Month Window
+      </div>
+      ${series.map(s=>`<div class="annual-summary-row">
+        <span style="color:${s.color};font-weight:600">â  ${s.label}</span>
+        <span class="salary-kpi">${fmt(s.cumValues[lastIdx])} SAR</span>
+      </div>`).join('')}`;
+  }
+
+  renderForecastCumChart();
 }
-function renderForecastChart(){
-  const canvas=document.getElementById('forecastCanvas');
-  if(!canvas||!window._fcData) return;
+
+function renderForecastCumChart(){
+  const canvas=document.getElementById('forecastCumCanvas');
+  if(!canvas||!window._fcCumData) return;
   const ctx=canvas.getContext('2d');
-  const W=Math.max(300,canvas.parentElement.clientWidth-20);
-  const H=280;
-  canvas.width=W;canvas.height=H;
-  const mc=FC_METRICS[forecastMetric];
-  const mk=mc.key;
-  const data=window._fcData;
-  const values=data.map(d=>d[mk]);
-  let sum=0;
-  const cumulative=values.map(v=>{sum+=v;return sum;});
-  const maxVal=Math.max.apply(null,values.concat([1]))*1.22;
-  const maxCum=Math.max.apply(null,cumulative.concat([1]))*1.18;
-  const pad={top:28,right:62,bottom:48,left:62};
-  const cW=W-pad.left-pad.right,cH=H-pad.top-pad.bottom;
+  const W=Math.max(300,canvas.parentElement.clientWidth-12);
+  const H=300;
+  canvas.width=W; canvas.height=H;
+  const data=window._fcCumData;
+  const series=window._fcCumSeries;
   const n=data.length;
-  const slotW=cW/n;
-  const barW=Math.max(8,Math.min(32,slotW*0.58));
-  if(_fcAnimFrame) cancelAnimationFrame(_fcAnimFrame);
-  const start=performance.now(),dur=650;
+  const pad={top:32,right:16,bottom:50,left:16};
+  const cW=W-pad.left-pad.right, cH=H-pad.top-pad.bottom;
+
+  // Max cumulative across all series
+  const allVals=series.flatMap(s=>s.cumValues);
+  const maxVal=Math.max(...allVals,1)*1.12;
+
+  function xOf(i){return pad.left+cW*i/(n-1||1);}
+  function yOf(v){return pad.top+cH-(v/maxVal)*cH;}
+
+  if(_fcCumAnimFrame) cancelAnimationFrame(_fcCumAnimFrame);
+  const start=performance.now(), dur=700;
+
   function frame(now){
     const t=Math.min(1,(now-start)/dur);
     const ease=1-Math.pow(1-t,3);
     ctx.clearRect(0,0,W,H);
+
+    // Grid lines
     for(let i=0;i<=4;i++){
-      const y=pad.top+cH-(cH*i/4);
-      ctx.strokeStyle='rgba(255,255,255,0.055)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
-      ctx.fillStyle='#606068';ctx.font='9px IBM Plex Mono';ctx.textAlign='right';
-      ctx.fillText(fmtK(Math.round(maxVal*i/4)),pad.left-5,y+3);
-      ctx.textAlign='left';
-      ctx.fillText(fmtK(Math.round(maxCum*i/4)),W-pad.right+5,y+3);
+      const v=maxVal*i/4;
+      const y=yOf(v);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y); ctx.stroke();
+      ctx.fillStyle='#505058'; ctx.font='9px IBM Plex Mono'; ctx.textAlign='left';
+      ctx.fillText(fmtK(Math.round(v)),pad.left+2,y-3);
     }
-    data.forEach(function(d,i){
-      const cx=pad.left+slotW*i+slotW/2;
-      const bH=Math.max(0,(values[i]/maxVal)*cH*ease);
-      const x=cx-barW/2;
-      const y=pad.top+cH-bH;
-      const r=Math.min(4,barW/3,bH);
-      const grad=ctx.createLinearGradient(0,y,0,pad.top+cH);
-      grad.addColorStop(0,d.isProjected?mc.projColor0:mc.barColor0);
-      grad.addColorStop(1,d.isProjected?mc.projColor1:mc.barColor1);
-      ctx.fillStyle=grad;
-      ctx.beginPath();
-      if(bH>r*2){ctx.moveTo(x,pad.top+cH);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.lineTo(x+barW-r,y);ctx.arcTo(x+barW,y,x+barW,y+r,r);ctx.lineTo(x+barW,pad.top+cH);}
-      else{ctx.rect(x,pad.top+cH-bH,barW,bH);}
-      ctx.closePath();ctx.fill();
-      if(d.isProjected){ctx.strokeStyle='rgba(150,150,150,0.4)';ctx.setLineDash([3,3]);ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}
-      if(t>=0.95&&values[i]>0){
-        ctx.fillStyle=d.isProjected?'rgba(200,200,200,0.65)':'rgba(230,240,255,0.92)';
-        ctx.font='bold '+Math.max(8,Math.min(11,barW-1))+'px IBM Plex Mono';ctx.textAlign='center';
-        ctx.fillText(fmtK(values[i]),cx,Math.max(pad.top+4,y-4));
+
+    // Vertical divider at current month
+    const curIdx=data.findIndex(d=>d.isCurrent);
+    if(curIdx>=0){
+      const cx=xOf(curIdx);
+      ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(cx,pad.top); ctx.lineTo(cx,pad.top+cH); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='8px IBM Plex Mono'; ctx.textAlign='center';
+      ctx.fillText('NOW',cx,pad.top-4);
+    }
+
+    // Draw each series line
+    series.forEach(s=>{
+      const firstProjIdx=data.findIndex(d=>d.isProjected);
+
+      // Actual segment (solid)
+      const solidEnd=firstProjIdx<0?n:firstProjIdx;
+      ctx.beginPath(); ctx.strokeStyle=s.color; ctx.lineWidth=2.2; ctx.setLineDash([]);
+      for(let i=0;i<=solidEnd&&i<n;i++){
+        const x=xOf(i);
+        const y=yOf(s.cumValues[i]*ease);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
       }
-      ctx.fillStyle='#606068';ctx.font='9px IBM Plex Mono';ctx.textAlign='center';
-      ctx.fillText(d.label,cx,pad.top+cH+14);
+      ctx.stroke();
+
+      // Projected segment (dashed, lighter)
+      if(firstProjIdx>0&&firstProjIdx<n){
+        ctx.beginPath();
+        ctx.strokeStyle=s.color.replace(/[\d.]+\)$/,'0.45)');
+        ctx.lineWidth=1.8; ctx.setLineDash([5,4]);
+        for(let i=firstProjIdx-1;i<n;i++){
+          const x=xOf(i);
+          const y=yOf(s.cumValues[i]*ease);
+          i===firstProjIdx-1?ctx.moveTh(x,y):ctx.lineTo(x,y);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      } else {
+        ctx.setLineDash([]);
+      }
+
+      // End dot
+      if(t>0.95){
+        const lx=xOf(n-1), ly=yOf(s.cumValues[n-1]*ease);
+        ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2);
+        ctx.fillStyle=s.color; ctx.fill();
+      }
     });
-    const firstProj=data.findIndex(function(d){return d.isProjected;});
-    ctx.beginPath();ctx.strokeStyle='rgba(15,35,110,0.92)';ctx.lineWidth=2.5;ctx.setLineDash([]);
-    const solidEnd=firstProj<0?n:firstProj+1;
-    for(let i=0;i<solidEnd;i++){const cx=pad.left+slotW*i+slotW/2;const cy=pad.top+cH-(cumulative[i]*ease/maxCum)*cH;i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);}
-    ctx.stroke();
-    if(firstProj>0&&firstProj<n){
-      ctx.beginPath();ctx.strokeStyle='rgba(15,35,110,0.45)';ctx.lineWidth=2;ctx.setLineDash([5,4]);
-      for(let i=firstProj-1;i<n;i++){const cx=pad.left+slotW*i+slotW/2;const cy=pad.top+cH-(cumulative[i]*ease/maxCum)*cH;i===firstProj-1?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);}
-      ctx.stroke();ctx.setLineDash([]);
-    } else ctx.setLineDash([]);
-    data.forEach(function(d,i){
-      const cx=pad.left+slotW*i+slotW/2;
-      const cy=pad.top+cH-(cumulative[i]*ease/maxCum)*cH;
-      ctx.beginPath();ctx.arc(cx,cy,d.isProjected?4:5,0,Math.PI*2);
-      ctx.fillStyle=d.isProjected?'rgba(255,190,50,0.95)':'#DC3545';
-      ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();
+
+    // X-axis labels
+    const step=n<=12?1:n<=24?2:Math.ceil(n/12);
+    data.forEach((d,i)=>{
+      if(i%step!==0&&i!==n-1) return;
+      const x=xOf(i);
+      ctx.fillStyle=d.isProjected?'rgba(150,150,160,0.7)':'rgba(180,180,190,0.9)';
+      ctx.font=`${d.isCurrent?'bold ':''} 9px IBM Plex Mono`; ctx.textAlign='center';
+      ctx.fillText(d.label+' '+(d.m.split('-')[0].slice(2)),x,pad.top+cH+13);
+      ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,pad.top+cH); ctx.lineTo(x,pad.top+cH+5); ctx.stroke();
     });
-    if(t>=0.95){
-      ctx.font='9px IBM Plex Mono';ctx.textAlign='left';
-      ctx.fillStyle='rgba(230,240,255,0.65)';ctx.fillText('◼ Monthly value',pad.left,pad.top-10);
-      ctx.beginPath();ctx.strokeStyle='rgba(15,35,110,0.85)';ctx.setLineDash([]);ctx.lineWidth=2;ctx.moveTo(W-pad.right-90,pad.top-13);ctx.lineTo(W-pad.right-75,pad.top-13);ctx.stroke();
-      ctx.beginPath();ctx.arc(W-pad.right-82,pad.top-13,3.5,0,Math.PI*2);ctx.fillStyle='#DC3545';ctx.fill();
-      ctx.fillStyle='rgba(230,240,255,0.65)';ctx.font='9px IBM Plex Mono';ctx.textAlign='left';ctx.fillText('Cumulative',W-pad.right-72,pad.top-10);
+
+    // Legend
+    if(t>0.95){
+      const legendY=H-12;
+      let lx=pad.left+4;
+      series.forEach(s=>{
+        ctx.fillStyle=s.color;
+        ctx.fillRect(lx,legendY-6,10,3);
+        ctx.fillStyle='rgba(200,200,210,0.8)'; ctx.font='8px IBM Plex Mono'; ctx.textAlign='left';
+        ctx.fillText(s.label,lx+13,legendY);
+        lx+=ctx.measureText(s.label).width+26;
+      });
     }
-    if(t<1) _fcAnimFrame=requestAnimationFrame(frame);
+
+    if(t<1) _fcCumAnimFrame=requestAnimationFrame(frame);
   }
-  _fcAnimFrame=requestAnimationFrame(frame);
+  _fcCumAnimFrame=requestAnimationFrame(frame);
 }
+
+function shiftForecastYear(d){}
+function setForecastMetric(m){}
+
 
 function renderAnnualDash(){
   const allExp=loadExpenses();
