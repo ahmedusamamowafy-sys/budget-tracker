@@ -2582,6 +2582,7 @@ function switchDashTab(tab,el){
   document.getElementById('dashInsights').style.display=tab==='insights'?'block':'none';
   document.getElementById('dashFamily').style.display=tab==='family'?'block':'none';
   renderDash();
+  if(tab==='forecast') setTimeout(renderForecastingDash, 50);
 }
 function renderDash(){
   if(activeDashTab==='monthly') renderMonthlyDash();
