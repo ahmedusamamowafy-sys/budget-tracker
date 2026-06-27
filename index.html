@@ -3080,7 +3080,7 @@ function renderForecastCumChart(){
         for(let i=firstProjIdx-1;i<n;i++){
           const x=xOf(i);
           const y=yOf(s.cumValues[i]*ease);
-          i===firstProjIdx-1?ctx.moveTh(x,y):ctx.lineTo(x,y);
+          i===firstProjIdx-1?ctx.moveTo(x,y):ctx.lineTo(x,y);
         }
         ctx.stroke(); ctx.setLineDash([]);
       } else {
