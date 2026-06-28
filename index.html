@@ -3257,7 +3257,7 @@ function renderDragChart(){
       for(let i=0;i<=solEnd&&i<n;i++){const x=xOf(i),y=yOf(s.vals[i]*ease);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
       ctx.stroke();
       if(fpIdx>0&&fpIdx<n){
-        ctx.beginPath();ctx.strokeStyle=s.color.replace(/[d.]+)$/,'0.45)');ctx.lineWidth=1.8;ctx.setLineDash([5,4]);
+        ctx.beginPath();ctx.strokeStyle=s.color.replace(/[\d.]+\)$/,'0.45)');ctx.lineWidth=1.8;ctx.setLineDash([5,4]);
         for(let i=fpIdx-1;i<n;i++){const x=xOf(i),y=yOf(s.vals[i]*ease);i===fpIdx-1?ctx.moveTo(x,y):ctx.lineTo(x,y);}
         ctx.stroke();ctx.setLineDash([]);
       }
