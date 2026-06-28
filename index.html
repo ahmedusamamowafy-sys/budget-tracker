@@ -1028,6 +1028,22 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
       <canvas id="forecastCumCanvas" style="display:block;max-width:100%;width:100%"></canvas>
     </div>
     <div class="annual-summary" id="forecastSummary" style="margin-top:14px"></div>
+  <div style="margin-top:20px;border-top:1px solid var(--border2);padding-top:16px">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">🎯 Custom Chart Builder <span style="font-size:10px;color:var(--muted);font-weight:400">drag categories to plot</span></div>
+    <div id="fcDragCards" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+    <div id="fcDropZone" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="fcDrop(event);this.style.borderColor='var(--border2)'" style="min-height:56px;border:2px dashed var(--border2);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;transition:border-color 0.2s">
+      <span id="fcDropHint" style="color:var(--muted);font-size:11px;pointer-events:none">⬇ Drop categories here to plot them</span>
+      <div id="fcDropItems" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--muted)">Sub-category:</span>
+      <select id="fcSubCatSel" onchange="renderDragChart()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:3px 8px;font-size:11px;cursor:pointer"></select>
+      <button onclick="fcClearAll()" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:3px 10px;color:var(--muted);font-size:11px;cursor:pointer">✕ Clear</button>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:14px 6px;overflow:hidden">
+      <canvas id="fcDragCanvas" style="display:block;max-width:100%;width:100%"></canvas>
+    </div>
+  </div>
   </div>
 
   <div id="dashInsights" style="display:none">
@@ -2923,6 +2939,7 @@ function setFcHorizon(h){
   renderForecastingDash();
 }
 function renderForecastingDash(){
+  fcInitDragCards();
   const allExp=loadExpenses();
   const currentM=getCurrentMonth();
   // Build window: past months with data + future up to _fcHorizon total
@@ -3128,6 +3145,166 @@ function renderForecastCumChart(){
 
 function shiftForecastYear(d){}
 function setForecastMetric(m){}
+const FC_CATS=[
+  {key:'salary',  label:'💰 Salary',          sign:1,  color:'rgba(96,165,250,1)'},
+  {key:'invest',  label:'📈 Investment',        sign:1,  color:'rgba(167,139,250,1)'},
+  {key:'budget',  label:'📋 Spendable Budget', sign:1,  color:'rgba(200,241,53,1)'},
+  {key:'sbBudget',label:'📦 SB Budget',        sign:1,  color:'rgba(74,222,128,1)'},
+  {key:'sbNet',   label:'💚 SB Net',           sign:1,  color:'rgba(34,197,94,1)'},
+  {key:'spentSP', label:'💸 Actual Spent',     sign:-1, color:'rgba(255,100,80,1)'},
+  {key:'sbSpent', label:'🔴 SB Actual Spent',  sign:-1, color:'rgba(251,146,60,1)'},
+];
+let _fcDropped=[],_fcDragAF=null;
+function fcInitDragCards(){
+  const el=document.getElementById('fcDragCards');
+  if(!el) return;
+  el.innerHTML=FC_CATS.map(c=>`<div draggable="true" ondragstart="fcDragStart(event,'${c.key}')" style="background:var(--card);border:1px solid var(--border2);border-left:3px solid ${c.color};border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:grab;color:var(--text);white-space:nowrap;user-select:none">${c.label} <span style="color:${c.sign>0?'#4ade80':'#f87171'}">${c.sign>0?'+':'−'}</span></div>`).join('');
+  const exp=loadExpenses();
+  const cats=[...new Set(exp.map(e=>e.subCategory||'').filter(Boolean))].sort();
+  const sel=document.getElementById('fcSubCatSel');
+  if(sel){const cv=sel.value;sel.innerHTML='<option value="">All sub-cats</option>'+cats.map(s=>`<option value="${s}"${s===cv?' selected':''}>${s}</option>`).join('');}
+  fcUpdateDropUI();
+}
+function fcDragStart(e,key){e.dataTransfer.setData('text/plain',key);}
+function fcDrop(e){
+  e.preventDefault();
+  const key=e.dataTransfer.getData('text/plain');
+  if(!key||_fcDropped.includes(key)) return;
+  _fcDropped.push(key);fcUpdateDropUI();renderDragChart();
+}
+function fcUpdateDropUI(){
+  const hint=document.getElementById('fcDropHint');
+  const items=document.getElementById('fcDropItems');
+  if(!items) return;
+  if(hint) hint.style.display=_fcDropped.length?'none':'';
+  items.innerHTML=_fcDropped.map(key=>{
+    const c=FC_CATS.find(x=>x.key===key);if(!c) return '';
+    return `<div style="background:var(--card);border:1px solid ${c.color};border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text);display:inline-flex;align-items:center;gap:5px"><span style="border-left:3px solid ${c.color};padding-left:6px">${c.label} <span style="color:${c.sign>0?'#4ade80':'#f87171'}">${c.sign>0?'+':'−'}</span></span><span onclick="fcRemove('${key}')" style="cursor:pointer;color:var(--muted);font-size:14px;line-height:1;margin-left:2px">×</span></div>`;
+  }).join('');
+}
+function fcRemove(key){_fcDropped=_fcDropped.filter(k=>k!==key);fcUpdateDropUI();renderDragChart();}
+function fcClearAll(){_fcDropped=[];fcUpdateDropUI();renderDragChart();}
+function renderDragChart(){
+  const canvas=document.getElementById('fcDragCanvas');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=Math.max(300,canvas.parentElement.clientWidth-28),H=340;
+  canvas.width=W;canvas.height=H;ctx.clearRect(0,0,W,H);
+  if(!_fcDropped.length){
+    ctx.fillStyle='rgba(120,120,130,0.4)';ctx.font='13px IBM Plex Mono';ctx.textAlign='center';
+    ctx.fillText('Drop categories above to draw a chart',W/2,H/2);return;
+  }
+  const allExp=loadExpenses(),currentM=getCurrentMonth();
+  const subCat=document.getElementById('fcSubCatSel')?.value||'';
+  function addM(ym,n){let[y,m]=ym.split('-').map(Number);m+=n;while(m>12){m-=12;y++;}while(m<1){m+=12;y--;}return y+'-'+String(m).padStart(2,'0');}
+  function mBet(a,b){const[ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);return(by-ay)*12+(bm-am);}
+  const allActM=[...new Set(allExp.map(e=>e.month))].sort();
+  const firstM=allActM.length?allActM[0]:currentM;
+  const pastN=Math.max(0,mBet(firstM,currentM));
+  const tot=pastN+_fcHorizon+1;
+  const months=Array.from({length:tot},(_,i)=>addM(firstM,i));
+  const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const raw=months.map(m=>{
+    const mm=parseInt(m.split('-')[1])-1;
+    const ef=e=>e.month===m&&(!subCat||e.subCategory===subCat);
+    const spentSP=allExp.filter(e=>ef(e)&&e.type==='Spendable').reduce((s,e)=>s+e.amount,0);
+    const sbSpent=allExp.filter(e=>ef(e)&&e.type==='Saving Box').reduce((s,e)=>s+e.amount,0);
+    return{m,mm,isProj:m>currentM,salary:getSalary(m),invest:getInvestments(m),budget:getSpendable(m),sbBudget:getSavingBox(m),sbNet:getSavingBox(m)-sbSpent,spentSP,sbSpent};
+  });
+  const actM=raw.filter(d=>!d.isProj);
+  function avg(k){const v=actM.map(d=>d[k]).filter(v=>v>0);return v.length?Math.round(v.reduce((s,x)=>s+x,0)/v.length):0;}
+  const avgs=Object.fromEntries(FC_CATS.map(c=>[c.key,avg(c.key)]));
+  const data=raw.map(d=>d.isProj?{...d,...avgs}:d);
+  const series=_fcDropped.map(key=>{
+    const c=FC_CATS.find(x=>x.key===key);let cum=0;
+    const vals=data.map(d=>{cum+=(d[key]||0)*c.sign;return cum;});
+    return{...c,vals};
+  });
+  const combined=data.map((_,i)=>series.reduce((s,sr)=>s+sr.vals[i],0));
+  const allV=[...series.flatMap(s=>s.vals),...combined,0];
+  const minV=Math.min(...allV),maxV=Math.max(...allV,1),yR=maxV-minV||1;
+  const n=data.length,pad={top:36,right:16,bottom:54,left:54};
+  const cW=W-pad.left-pad.right,cH=H-pad.top-pad.bottom;
+  const xOf=i=>pad.left+cW*i/(n-1||1);
+  const yOf=v=>pad.top+cH-((v-minV)/yR)*cH;
+  if(_fcDragAF) cancelAnimationFrame(_fcDragAF);
+  const t0=performance.now(),dur=700;
+  function frame(now){
+    const t=Math.min(1,(now-t0)/dur),ease=1-Math.pow(1-t,3);
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<=5;i++){
+      const v=minV+yR*i/5,y=yOf(v);
+      ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;ctx.setLineDash([]);
+      ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+      ctx.fillStyle='#505058';ctx.font='9px IBM Plex Mono';ctx.textAlign='right';
+      ctx.fillText(fmtK(Math.round(v)),pad.left-4,y+3);
+    }
+    if(minV<0){const zy=yOf(0);ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(pad.left,zy);ctx.lineTo(W-pad.right,zy);ctx.stroke();ctx.setLineDash([]);}
+    const curIdx=data.findIndex(d=>d.m===currentM);
+    if(curIdx>=0){
+      const cx=xOf(curIdx);
+      ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(cx,pad.top);ctx.lineTo(cx,pad.top+cH);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='8px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText('NOW',cx,pad.top-4);
+    }
+    const fpIdx=data.findIndex(d=>d.isProj);
+    const solEnd=fpIdx<0?n:fpIdx;
+    series.forEach(s=>{
+      ctx.beginPath();ctx.strokeStyle=s.color;ctx.lineWidth=2;ctx.setLineDash([]);
+      for(let i=0;i<=solEnd&&i<n;i++){const x=xOf(i),y=yOf(s.vals[i]*ease);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+      ctx.stroke();
+      if(fpIdx>0&&fpIdx<n){
+        ctx.beginPath();ctx.strokeStyle=s.color.replace(/[d.]+)$/,'0.45)');ctx.lineWidth=1.8;ctx.setLineDash([5,4]);
+        for(let i=fpIdx-1;i<n;i++){const x=xOf(i),y=yOf(s.vals[i]*ease);i===fpIdx-1?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+        ctx.stroke();ctx.setLineDash([]);
+      }
+    });
+    if(series.length>1){
+      ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.65)';ctx.lineWidth=2.5;ctx.setLineDash([3,3]);
+      for(let i=0;i<n;i++){const x=xOf(i),y=yOf(combined[i]*ease);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+      ctx.stroke();ctx.setLineDash([]);
+    }
+    if(t>0.95){
+      const step=n<=12?1:n<=24?2:Math.ceil(n/12);
+      series.forEach(s=>{
+        ctx.font='8px IBM Plex Mono';
+        data.forEach((d,i)=>{
+          if(i%step!==0&&i!==n-1) return;
+          const x=xOf(i),y=yOf(s.vals[i]);
+          ctx.fillStyle=s.color;ctx.textAlign='center';
+          ctx.fillText(fmtK(Math.round(s.vals[i])),x,y-6);
+        });
+      });
+      if(series.length>1){
+        data.forEach((d,i)=>{
+          const step2=n<=12?1:n<=24?2:Math.ceil(n/12);
+          if(i%step2!==0&&i!==n-1) return;
+          ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 8px IBM Plex Mono';ctx.textAlign='center';
+          ctx.fillText(fmtK(Math.round(combined[i])),xOf(i),yOf(combined[i])-6);
+        });
+      }
+    }
+    const step=n<=12?1:n<=24?2:Math.ceil(n/12);
+    data.forEach((d,i)=>{
+      if(i%step!==0&&i!==n-1) return;
+      ctx.fillStyle=d.isProj?'rgba(150,150,160,0.7)':'rgba(180,180,190,0.9)';
+      ctx.font=(d.m===currentM?'bold ':'')+' 9px IBM Plex Mono';ctx.textAlign='center';
+      ctx.fillText(MN[d.mm]+' '+d.m.split('-')[0].slice(2),xOf(i),pad.top+cH+13);
+    });
+    if(t>0.95){
+      let lx=pad.left+4;const ly=H-12;
+      const leg=series.length>1?[...series,{label:'Combined',color:'rgba(255,255,255,0.65)'}]:series;
+      leg.forEach(s=>{
+        ctx.fillStyle=s.color;ctx.fillRect(lx,ly-6,10,3);
+        ctx.fillStyle='rgba(200,200,210,0.8)';ctx.font='8px IBM Plex Mono';ctx.textAlign='left';
+        ctx.fillText(s.label,lx+13,ly);lx+=ctx.measureText(s.label).width+26;
+      });
+    }
+    if(t<1)_fcDragAF=requestAnimationFrame(frame);
+  }
+  _fcDragAF=requestAnimationFrame(frame);
+}
 
 
 function renderAnnualDash(){
