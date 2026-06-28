@@ -1656,6 +1656,8 @@ function getMonths(){const m=[...new Set(loadExpenses().map(e=>e.month))].sort()
 // LOGIN
 const DEFAULT_USERS={'Ahmed':{pass:'99',role:'admin'},'Yara':{pass:'00',role:'viewer'}};
 const USERS_KEY='ksa_users';
+// Auto-init admin if users wiped but data exists
+(function(){try{const u=JSON.parse(localStorage.getItem('ksa_users'));if((!u||!Object.keys(u).length)&&localStorage.getItem('ksa_budget_expenses')){localStorage.setItem('ksa_users',JSON.stringify({Ahmed:{pass:'1234',role:'admin'}}));}}catch(e){}})();
 function loadUsers(){
   try{
     const u=JSON.parse(localStorage.getItem(USERS_KEY));
@@ -2148,7 +2150,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(false && !getGsUrl()){
     document.getElementById('setupScreen').style.display='block';
   }
-  if(sessionStorage.getItem('ksa_logged_in')==='1'){showApp();return;}
+  if(localStorage.getItem('ksa_logged_in')==='1'){showApp();return;}
   ['loginUser','loginPass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
 });
 function doLogin(){
@@ -2156,9 +2158,9 @@ function doLogin(){
   const pass=document.getElementById('loginPass').value;
   const found=loadUsers()[user];
   if(found&&found.pass===pass){
-    sessionStorage.setItem('ksa_logged_in','1');
-    sessionStorage.setItem('ksa_user',user);
-    sessionStorage.setItem('ksa_role',found.role);
+    localStorage.setItem('ksa_logged_in','1');
+    localStorage.setItem('ksa_user',user);
+    localStorage.setItem('ksa_role',found.role);
     currentUser={name:user,role:found.role};
     showApp();
   } else {
@@ -2169,7 +2171,7 @@ function doLogin(){
 function showApp(){
   // Restore session if already logged in
   if(!currentUser){
-    const u=sessionStorage.getItem('ksa_user'),r=sessionStorage.getItem('ksa_role');
+    const u=localStorage.getItem('ksa_user'),r=localStorage.getItem('ksa_role');
     if(u&&r) currentUser={name:u,role:r};
     else return;
   }
@@ -5331,9 +5333,9 @@ function deleteBox(id){
 // ── MISSING FUNCTIONS FIX ────────────────────────────────────
 
 function logout(){
-  sessionStorage.removeItem('ksa_logged_in');
-  sessionStorage.removeItem('ksa_user');
-  sessionStorage.removeItem('ksa_role');
+  localStorage.removeItem('ksa_logged_in');
+  localStorage.removeItem('ksa_user');
+  localStorage.removeItem('ksa_role');
   currentUser=null;
   document.getElementById('appWrap').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
