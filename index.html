@@ -2178,7 +2178,6 @@ function showApp(){
   document.getElementById('expDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('topbarMonth').textContent=formatMonth(getCurrentMonth());
   // Show username in topbar
-  document.getElementById('topbarUser').textContent = currentUser.role==='admin' ? currentUser.name+' 👑' : currentUser.name;
   // Apply role restrictions for Yara (viewer)
   applyRoleRestrictions();
   // Show admin tab for admin role
