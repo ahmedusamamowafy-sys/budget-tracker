@@ -492,7 +492,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
 </style>
 </head>
 <body>
-<button id="installAppBtn" onclick="installApp()" style="position:fixed;bottom:18px;right:18px;z-index:9999;padding:12px 18px;background:var(--accent);color:#0D0D0F;border:none;border-radius:30px;font-size:13px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans Arabic',sans-serif;box-shadow:0 4px 14px rgba(0,0,0,0.4)">📲 Get on Your Device</button>
+
 
 <!-- SETUP SCREEN -->
 <div id="setupScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;overflow-y:auto;padding:20px 16px">
@@ -588,7 +588,7 @@ optgroup{background:var(--card);color:var(--muted);font-size:12px}option{backgro
   <div class="topbar-right">
     <span id="syncStatus" style="font-size:16px;cursor:default" title="Sync status">📵</span>
     <span id="viewerBadge" style="display:none;font-size:10px;background:#2A2A30;color:var(--muted);padding:3px 8px;border-radius:10px;font-family:'IBM Plex Mono',monospace">👁 Viewer</span>
-    <span id="topbarUser" style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace"></span>
+    
     <button onclick="logout()" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace" title="Switch User">🔄 Switch User</button>
     <div class="topbar-month" id="topbarMonth"></div>
     <div class="eye-menu-wrap">
@@ -1656,20 +1656,6 @@ function getMonths(){const m=[...new Set(loadExpenses().map(e=>e.month))].sort()
 // LOGIN
 const DEFAULT_USERS={'Ahmed':{pass:'99',role:'admin'},'Yara':{pass:'00',role:'viewer'}};
 const USERS_KEY='ksa_users';
-// Always ensure Ahmed admin exists and auto-login if data present
-(function(){
-  try{
-    let u=JSON.parse(localStorage.getItem('ksa_users'))||{};
-    if(!u.Ahmed) u.Ahmed={pass:'1234',role:'admin'};
-    localStorage.setItem('ksa_users',JSON.stringify(u));
-    // Auto-login: if budget data exists and not already logged in, log in automatically
-    if(localStorage.getItem('ksa_budget_expenses') && !localStorage.getItem('ksa_logged_in')){
-      localStorage.setItem('ksa_logged_in','1');
-      localStorage.setItem('ksa_user','Ahmed');
-      localStorage.setItem('ksa_role','admin');
-    }
-  }catch(e){}
-})();
 function loadUsers(){
   try{
     const u=JSON.parse(localStorage.getItem(USERS_KEY));
@@ -2162,7 +2148,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(false && !getGsUrl()){
     document.getElementById('setupScreen').style.display='block';
   }
-  if(localStorage.getItem('ksa_logged_in')==='1'){showApp();return;}
+  localStorage.removeItem('ksa_logged_in'); // always require login
   ['loginUser','loginPass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
 });
 function doLogin(){
